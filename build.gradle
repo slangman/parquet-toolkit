@@ -1,0 +1,89 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group 'kz.hustle'
+version '0.0.1'
+
+sourceCompatibility = 1.8
+
+repositories {
+    maven {
+        url "https://repository.cloudera.com/artifactory/cloudera-repos/"
+    }
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
+    implementation group: 'org.apache.hadoop', name: 'hadoop-common', version: '3.2.1'
+    implementation group: 'org.apache.hadoop', name: 'hadoop-hdfs', version: '3.2.1'
+    implementation group: 'org.apache.hadoop', name: 'hadoop-hdfs-client', version: '3.2.1'
+    implementation group: 'org.apache.hadoop', name: 'hadoop-client-api', version: '3.1.1.7.2.10.0-148'
+    implementation group: 'org.apache.hadoop', name: 'hadoop-client-runtime', version: '3.1.1.7.2.10.0-148'
+
+    implementation group: 'org.apache.avro', name: 'avro', version: '1.10.2'
+    implementation group: 'org.apache.parquet', name: 'parquet-hadoop', version: '1.12.1'
+    //implementation group: 'org.apache.parquet', name: 'parquet-hadoop', version: '1.10.99.7.2.10.0-148'
+    implementation group: 'org.apache.parquet', name: 'parquet-avro', version: '1.13'
+    implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.8'
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.34.0'
+}
+
+configurations {
+    runtime.exclude group: "org.slf4j", module: "slf4j-log4j12"
+    //runtime.exclude group: "log4j", module: "log4j"
+}
+
+//For building production jar
+jar {
+    sourceSets {
+        main {
+            java {
+                exclude 'kz/beeline/dmc/test/**'
+            }
+        }
+    }
+}
+
+//Publish in nexus
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact("build/libs/parquet-utils-$version" + ".jar") {
+                extension 'jar'
+            }
+            generatePomFileForMavenPublication
+        }
+    }
+    repositories {
+        maven {
+            url "http://172.28.58.127:8081/repository/dmc-web"
+            credentials {
+                username "dmp-maintainer"
+                password "g^%is05GH1Ty"
+            }
+        }
+    }
+}
+
+//Build fat jar
+/*jar {
+    manifest {
+        attributes(
+                'Main-Class': 'kz.beeline.dmc.test.TreeMultithreadedParquetMergerTest'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+}*/

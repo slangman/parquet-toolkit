@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.exception;
 
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;

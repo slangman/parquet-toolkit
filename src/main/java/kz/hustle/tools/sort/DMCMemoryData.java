@@ -1,7 +1,7 @@
 package kz.hustle.tools.sort;
 
-import kz.dmc.packages.console.DMCConsoleColors;
-import kz.dmc.packages.error.DMCError;
+/*import kz.dmc.packages.console.DMCConsoleColors;
+import kz.dmc.packages.error.DMCError;*/
 import org.apache.avro.generic.GenericRecord;
 
 import java.sql.*;
@@ -127,11 +127,14 @@ public class DMCMemoryData {
                 attempt.execute();
                 _isError = false;
             } catch (Exception e) {
-                String _exception = DMCError.get().getShortErrorText(e);
+                //String _exception = DMCError.get().getShortErrorText(e);
+                String _exception = e.getMessage();
                 if (_exception.contains("[SQLITE_LOCKED_SHAREDCACHE]")) {
                     _isError = true;
-                    System.out.println(DMCConsoleColors.colorYellowText("Перезапуск комманды..."));
-                    System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
+                    //System.out.println(DMCConsoleColors.colorYellowText("Перезапуск комманды..."));
+                    System.out.println("Перезапуск комманды...");
+                    //System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
+                    e.printStackTrace();
                     Thread.sleep(10);
                 }
             }

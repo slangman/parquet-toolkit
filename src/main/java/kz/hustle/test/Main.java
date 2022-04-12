@@ -1,9 +1,7 @@
 package kz.hustle.test;
 
 import kz.hustle.ParquetFile;
-import kz.beeline.dmc.tools.*;
-import kz.dmc.packages.spark.DMCSpark;
-import kz.hustle.tools.CsvToParquetConverter;
+import kz.hustle.tools.convert.CsvToParquetConverter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;

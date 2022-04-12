@@ -1,5 +1,8 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
+import kz.hustle.tools.common.ParquetThread;
+import kz.hustle.tools.exception.DMCErrorDeleteFile;
+import kz.hustle.tools.exception.DMCErrorRenameFile;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;

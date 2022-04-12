@@ -1,9 +1,9 @@
 package kz.hustle.tools.sort;
 
-import kz.dmc.packages.console.DMCConsoleColors;
+/*import kz.dmc.packages.console.DMCConsoleColors;
 import kz.dmc.packages.controllers.DMCController;
 import kz.dmc.packages.error.DMCError;
-import kz.dmc.packages.threads.pools.DMCThreadsPool;
+import kz.dmc.packages.threads.pools.DMCThreadsPool;*/
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -89,7 +89,8 @@ public class DefaultFileProcessor implements FileProcessor {
                     partFilePool.addToPool(part);
                 }
             } catch (Exception e) {
-                System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
+                e.printStackTrace();
+                //System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
             }
         }
     }
@@ -119,8 +120,8 @@ public class DefaultFileProcessor implements FileProcessor {
                 recordsList.clear();
 
             } catch (Exception e) {
-//                e.printStackTrace();
-                System.out.println(DMCError.get().getFullErrorText(e));
+                e.printStackTrace();
+                //System.out.println(DMCError.get().getFullErrorText(e));
                 System.exit(0);
             }
         }

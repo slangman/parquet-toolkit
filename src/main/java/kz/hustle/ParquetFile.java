@@ -1,6 +1,6 @@
 package kz.hustle;
 
-import kz.hustle.tools.MergeUtils;
+import kz.hustle.tools.merge.MergeUtils;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;

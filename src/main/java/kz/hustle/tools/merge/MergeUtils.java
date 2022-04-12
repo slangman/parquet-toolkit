@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

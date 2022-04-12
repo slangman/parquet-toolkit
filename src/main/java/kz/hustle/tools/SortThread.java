@@ -1,5 +1,6 @@
 package kz.hustle.tools;
 
+import kz.hustle.tools.common.ParquetThread;
 import org.apache.avro.generic.GenericRecord;
 
 import java.util.ArrayDeque;

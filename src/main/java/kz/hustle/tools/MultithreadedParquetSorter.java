@@ -7,7 +7,7 @@ import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 import java.io.IOException;
 
-public class MultithreadParquetSorter implements ParquetSorter {
+public abstract class MultithreadedParquetSorter implements ParquetSorter {
     protected Configuration conf;
     //private FileSystem fs;
     protected Path inputPath;

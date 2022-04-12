@@ -1,6 +1,10 @@
-package kz.hustle.tools;
+package kz.hustle.tools.split;
 
 import kz.hustle.ParquetFile;
+import kz.hustle.tools.SimpleParquetSorter;
+import kz.hustle.tools.common.ParquetThread;
+import kz.hustle.tools.common.ThreadPool;
+import kz.hustle.tools.merge.MergeUtils;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;

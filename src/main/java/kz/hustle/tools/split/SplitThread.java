@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.split;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.hadoop.ParquetReader;

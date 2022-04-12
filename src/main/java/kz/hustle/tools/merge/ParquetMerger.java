@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
 import kz.hustle.tools.merge.MergingNotCompletedException;
 

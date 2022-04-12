@@ -1,11 +1,14 @@
-package kz.hustle.tools;
+package kz.hustle.tools.convert;
 
+import kz.hustle.tools.common.ParquetThread;
 import kz.hustle.utils.WorkTime;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetFileWriter;
@@ -56,7 +59,7 @@ public class ConvertThread extends ParquetThread {
                 .withConf(conf)
                 .withCompressionCodec(compressionCodecName)
                 .withRowGroupSize(128 * 1024 * 1024)
-                .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
+                //.withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
                 .build();) {
             while (!lines.isEmpty()) {
                 CSVRecord line = lines.remove();
@@ -101,5 +104,13 @@ public class ConvertThread extends ParquetThread {
                 return value;
         }
     }
+
+    /*private ParquetWriter<GenericRecord> getParquetWriter(String outputPath) throws IOException {
+        Path p = new Path(outputPath);
+        FileSystem fs = p.getFileSystem(conf);
+        if (fs instanceof LocalFileSystem) {
+            return new ProtoParquetWriter
+        }
+    }*/
 
 }

@@ -1,10 +1,9 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
 import kz.hustle.ParquetFolder;
-import kz.hustle.tools.merge.MergingNotCompletedException;
+import kz.hustle.tools.exception.DMCErrorDeleteFile;
+import kz.hustle.tools.exception.DMCErrorRenameFile;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.avro.AvroSchemaConverter;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetFileWriter;

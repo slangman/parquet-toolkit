@@ -1,8 +1,9 @@
 package kz.hustle.tools.sort;
 
-import kz.dmc.packages.console.DMCConsoleColors;
+/*import kz.dmc.packages.console.DMCConsoleColors;
 import kz.dmc.packages.datetime.DMCDateTimeUtils;
 import kz.dmc.packages.error.DMCError;
+import net.minidev.json.JSONUtil;*/
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.codec.DecoderException;
@@ -58,7 +59,7 @@ public class SortDataFactory {
     private class PartsProcess implements Runnable {
         private final SortThreadPool pool = ThreadPoolContainer.get().getPool("sortPool").setPoolId(100);
         private final Schema schema = SortDataFactory.this.schema;
-        private final DMCDateTimeUtils time = new DMCDateTimeUtils().setStartWorkTime();
+        //private final DMCDateTimeUtils time = new DMCDateTimeUtils().setStartWorkTime();
         private final DMCMemoryData memoryData = new DMCMemoryData();
 
         private Queue<byte[]> queueBytes = null;
@@ -82,10 +83,12 @@ public class SortDataFactory {
             String _sql;
             if (isSort) {
                 _sql = "SELECT DATA FROM CACHE ORDER BY KEY";
-                System.out.println(DMCConsoleColors.colorYellowText("Сортировка..."));
+                System.out.println("Сортировка...");
+                //System.out.println(DMCConsoleColors.colorYellowText("Сортировка..."));
             } else {
                 _sql = "SELECT DATA FROM CACHE";
-                System.out.println(DMCConsoleColors.colorYellowText("Сортировка не требуется..."));
+                System.out.println("Сортировка не требуется...");
+                //System.out.println(DMCConsoleColors.colorYellowText("Сортировка не требуется..."));
             }
 
             try {
@@ -96,7 +99,8 @@ public class SortDataFactory {
                         .executeQuery(_sql);
 
                 if (isSort) {
-                    System.out.println(DMCConsoleColors.colorGreenText("Сортировка завершена: " + time.getWorkTimeShort()));
+                    System.out.println("Сортировка завершена: ");
+                    //System.out.println(DMCConsoleColors.colorGreenText("Сортировка завершена: " + time.getWorkTimeShort()));
                 }
 
                 queueBytes = new LinkedList<>();
@@ -140,10 +144,12 @@ public class SortDataFactory {
 
                 try {
                     this.pool.shutDownAndWait();
-                    System.out.println(DMCConsoleColors.colorYellowText("Данные в памяти обработаны..."));
+                    System.out.println("Данные в памяти обработаны...");
+                    //System.out.println(DMCConsoleColors.colorYellowText("Данные в памяти обработаны..."));
                     isFinish = true;
                 } catch (Exception e) {
-                    System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
+                    e.printStackTrace();
+                    //System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
                     throw new RuntimeException(e);
                 }
 
@@ -152,15 +158,18 @@ public class SortDataFactory {
                         .listFilesStatuses(savePath, ".parq");*/
 
             } catch (Exception e) {
-                System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
+                e.printStackTrace();
+                //System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
                 throw new RuntimeException(e);
             } finally {
                 try {
                     this.pool.shutDownAndWait();
-                    System.out.println(DMCConsoleColors.colorYellowText("Данные в памяти обработаны..."));
+                    System.out.println("Данные в памяти обработаны...");
+                    //System.out.println(DMCConsoleColors.colorYellowText("Данные в памяти обработаны..."));
                     isFinish = true;
                 } catch (Exception e) {
-                    System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
+                    e.printStackTrace();
+                    //System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
                     throw new RuntimeException(e);
                 }
             }

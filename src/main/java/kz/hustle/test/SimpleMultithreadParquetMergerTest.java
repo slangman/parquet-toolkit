@@ -1,8 +1,8 @@
 package kz.hustle.test;
 
 import kz.hustle.ParquetFolder;
-import kz.hustle.tools.ParquetMerger;
-import kz.hustle.tools.SimpleMultithreadedParquetMerger;
+import kz.hustle.tools.merge.ParquetMerger;
+import kz.hustle.tools.merge.SimpleMultithreadedParquetMerger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;

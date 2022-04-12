@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.common;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -1,7 +1,8 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
 import kz.hustle.ParquetFolder;
-import kz.hustle.tools.merge.MergingNotCompletedException;
+import kz.hustle.tools.common.InputSource;
+import kz.hustle.tools.common.ThreadPool;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -65,6 +66,13 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         private Builder(ParquetFolder parquetFolder) {
             SimpleMultithreadedParquetMerger.this.inputPath = parquetFolder.getPath();
             SimpleMultithreadedParquetMerger.this.conf = parquetFolder.getConf();
+        }
+
+        private Builder(){}
+
+        public Builder source(InputSource source) {
+            SimpleMultithreadedParquetMerger.this.inputSource = source;
+            return this;
         }
 
         /**

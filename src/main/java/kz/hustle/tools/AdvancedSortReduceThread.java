@@ -1,5 +1,6 @@
 package kz.hustle.tools;
 
+import kz.hustle.tools.common.ParquetThread;
 import kz.hustle.utils.DMCGzip;
 import kz.hustle.utils.ParquetGenericRecordConverter;
 import org.apache.avro.Schema;

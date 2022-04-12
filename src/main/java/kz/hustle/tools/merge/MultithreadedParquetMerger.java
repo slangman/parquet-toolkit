@@ -1,13 +1,11 @@
-package kz.hustle.tools;
-
-import kz.hustle.tools.merge.MergingNotCompletedException;
+package kz.hustle.tools.merge;
 
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MultithreadedParquetMerger extends ParquetMergerImpl {
+public abstract class MultithreadedParquetMerger extends ParquetMergerImpl {
 
     volatile Set<String> brokenFilesMT = ConcurrentHashMap.newKeySet();
     AtomicInteger chunksCounterMT = new AtomicInteger(0);

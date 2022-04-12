@@ -1,6 +1,6 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
-import kz.hustle.tools.merge.MergingNotCompletedException;
+import kz.hustle.tools.common.InputSource;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -8,8 +8,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.avro.AvroReadSupport;
-import org.apache.parquet.avro.AvroWriteSupport;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
@@ -21,9 +19,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-class ParquetMergerImpl implements ParquetMerger {
+public abstract class ParquetMergerImpl implements ParquetMerger {
 
     protected Path inputPath;
+    protected InputSource inputSource;
     protected Configuration conf;
     protected FileSystem fs;
     volatile Set<String> brokenFiles = ConcurrentHashMap.newKeySet();

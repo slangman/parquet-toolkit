@@ -1,6 +1,9 @@
-package kz.hustle.tools;
+package kz.hustle.tools.convert;
 
 import kz.hustle.ParquetFolder;
+import kz.hustle.tools.merge.ParquetMerger;
+import kz.hustle.tools.merge.SimpleMultithreadedParquetMerger;
+import kz.hustle.tools.common.ThreadPool;
 import kz.hustle.tools.merge.MergingNotCompletedException;
 import kz.hustle.utils.DefaultConfigurationBuilder;
 import kz.hustle.utils.WorkTime;
@@ -246,6 +249,8 @@ public class CsvToParquetConverter {
     }
 
     public void convert() throws Exception {
+        Path p = new Path(inputPath);
+        fs = p.getFileSystem(conf);
         if (header == null && fieldTypes == null && !firstRecordAsHeader) {
             throw new Exception("Header not provided");
         }
@@ -258,7 +263,6 @@ public class CsvToParquetConverter {
         if (schema == null) {
             return;
         }
-        fs = DistributedFileSystem.get(conf);
         WorkTime workTime = new WorkTime();
         workTime.startTime();
         if (outputPath == null) {

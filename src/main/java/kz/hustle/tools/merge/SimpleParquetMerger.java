@@ -1,12 +1,12 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
 import kz.hustle.ParquetFolder;
-import kz.hustle.tools.merge.MergingNotCompletedException;
+import kz.hustle.tools.exception.DMCErrorDeleteFile;
+import kz.hustle.tools.exception.DMCErrorRenameFile;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;

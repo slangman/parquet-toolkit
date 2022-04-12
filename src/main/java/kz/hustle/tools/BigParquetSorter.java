@@ -1,6 +1,7 @@
 package kz.hustle.tools;
 
-import kz.beeline.dmc.tools.sort.*;
+import kz.hustle.tools.sort.*;
+import kz.hustle.tools.merge.MergeUtils;
 import kz.hustle.tools.sort.*;
 import org.apache.hadoop.fs.FileStatus;
 

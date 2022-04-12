@@ -1,6 +1,8 @@
-package kz.hustle.tools;
+package kz.hustle.tools.split;
 
 import kz.hustle.ParquetFile;
+import kz.hustle.tools.common.ThreadPool;
+import kz.hustle.tools.merge.MergeUtils;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -19,7 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultithreadParquetSplitter {
+public class MultithreadedParquetSplitter {
     private Configuration conf;
     private FileSystem fs;
     private Path inputPath;
@@ -35,51 +37,51 @@ public class MultithreadParquetSplitter {
     private boolean removeInputFile;
     private boolean removeInputFolder;
 
-    private MultithreadParquetSplitter() {
+    private MultithreadedParquetSplitter() {
     }
 
-    public static MultithreadParquetSplitter.Builder builder(ParquetFile parquetFile) {
-        return new MultithreadParquetSplitter().new Builder(parquetFile);
+    public static MultithreadedParquetSplitter.Builder builder(ParquetFile parquetFile) {
+        return new MultithreadedParquetSplitter().new Builder(parquetFile);
     }
 
     public class Builder {
         private Builder(ParquetFile parquetFile) {
-            MultithreadParquetSplitter.this.inputPath = parquetFile.getPath();
-            MultithreadParquetSplitter.this.conf = parquetFile.getConf();
+            MultithreadedParquetSplitter.this.inputPath = parquetFile.getPath();
+            MultithreadedParquetSplitter.this.conf = parquetFile.getConf();
         }
 
-        public MultithreadParquetSplitter.Builder withOutputPath(Path outputPath) {
-            MultithreadParquetSplitter.this.outputPath = outputPath;
+        public MultithreadedParquetSplitter.Builder withOutputPath(Path outputPath) {
+            MultithreadedParquetSplitter.this.outputPath = outputPath;
             return this;
         }
 
-        public MultithreadParquetSplitter.Builder withOutputChunkSize(int outputChunkSize) {
-            MultithreadParquetSplitter.this.outputChunkSize = outputChunkSize;
+        public MultithreadedParquetSplitter.Builder withOutputChunkSize(int outputChunkSize) {
+            MultithreadedParquetSplitter.this.outputChunkSize = outputChunkSize;
             return this;
         }
 
-        public MultithreadParquetSplitter.Builder withRowGroupSize(int rowGroupSize) {
-            MultithreadParquetSplitter.this.rowGroupSize = rowGroupSize;
+        public MultithreadedParquetSplitter.Builder withRowGroupSize(int rowGroupSize) {
+            MultithreadedParquetSplitter.this.rowGroupSize = rowGroupSize;
             return this;
         }
 
-        public MultithreadParquetSplitter.Builder withThreadPoolSize(int threadPoolSize) {
-            MultithreadParquetSplitter.this.threadPoolSize = threadPoolSize;
+        public MultithreadedParquetSplitter.Builder withThreadPoolSize(int threadPoolSize) {
+            MultithreadedParquetSplitter.this.threadPoolSize = threadPoolSize;
             return this;
         }
 
-        public MultithreadParquetSplitter.Builder withCompressionCodec(CompressionCodecName compressionCodecName) {
-            MultithreadParquetSplitter.this.compressionCodecName = compressionCodecName;
+        public MultithreadedParquetSplitter.Builder withCompressionCodec(CompressionCodecName compressionCodecName) {
+            MultithreadedParquetSplitter.this.compressionCodecName = compressionCodecName;
             return this;
         }
 
-        public MultithreadParquetSplitter.Builder withRemoveInputFile() {
-            MultithreadParquetSplitter.this.removeInputFile = true;
+        public MultithreadedParquetSplitter.Builder withRemoveInputFile() {
+            MultithreadedParquetSplitter.this.removeInputFile = true;
             return this;
         }
 
-        public MultithreadParquetSplitter build() {
-            return MultithreadParquetSplitter.this;
+        public MultithreadedParquetSplitter build() {
+            return MultithreadedParquetSplitter.this;
         }
     }
 

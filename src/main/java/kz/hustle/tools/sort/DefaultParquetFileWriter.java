@@ -1,6 +1,6 @@
 package kz.hustle.tools.sort;
 
-import kz.dmc.packages.filesystems.DMCHadoopFileSystem;
+//import kz.dmc.packages.filesystems.DMCHadoopFileSystem;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;

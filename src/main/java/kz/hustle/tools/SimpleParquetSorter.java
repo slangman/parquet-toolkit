@@ -1,5 +1,7 @@
 package kz.hustle.tools;
 
+import kz.hustle.tools.common.ThreadPool;
+import kz.hustle.tools.merge.MergeUtils;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.avro.AvroParquetWriter;

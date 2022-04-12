@@ -1,5 +1,9 @@
-package kz.hustle.tools;
+package kz.hustle.tools.merge;
 
+import kz.hustle.tools.common.ParquetThread;
+import kz.hustle.tools.exception.DMCErrorAppendFileToParquet;
+import kz.hustle.tools.exception.DMCErrorDeleteFile;
+import kz.hustle.tools.exception.DMCErrorRenameFile;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

@@ -5,6 +5,6 @@ import org.apache.hadoop.conf.Configuration;
 
 public class ConfigurationManager {
     public static Configuration getConf() {
-        return ConfigurationBuilder.getHDFSConfiguration();
+        return ConfigurationBuilder.getClouderaQuickstartConf();
     };
 }

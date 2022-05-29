@@ -14,14 +14,12 @@ public class SimpleMultithreadParquetMergerTest {
         String inputPath = args[0];
         String outputPath = args[1];
 
-        Configuration configuration = ConfigurationBuilder.getHDFSConfigurationKerberos();
-        UserGroupInformation.setConfiguration(configuration);
-        UserGroupInformation.loginUserFromKeytab("DIvantsov@KAR-TEL.LOCAL", "C:\\ooo.key");
+        Configuration configuration = ConfigurationBuilder.getClouderaQuickstartConf();
 
         ParquetFolder folder = new ParquetFolder(new Path(inputPath), configuration);
         ParquetMerger merger = SimpleMultithreadedParquetMerger.builder(folder)
                 .withCompressionCodec(CompressionCodecName.GZIP)
-                .withThreadPoolSize(64)
+                .withThreadPoolSize(4)
                 .withOutputRowGroupSize(128 * 1024 * 1024)
                 .withInputChunkSize(128 * 1024 * 1024)
                 .withOutputPath(outputPath)

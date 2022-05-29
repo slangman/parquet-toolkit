@@ -13,7 +13,7 @@ public class Main {
         String inputPath = args[0];
         String outputPath = args[1];
 
-        Configuration configuration = ConfigurationBuilder.getHDFSConfiguration();
+        Configuration configuration = ConfigurationBuilder.getClouderaQuickstartConf();
 
         String[] header = {"Consecutive_Number","Name","Distinguished_Name","Alarm_Type","Alarm_Number","Severity",
                 "Alarm_Time","Cancel_Time","Cancel_User","Acknowledgement_State","Acknowledgement_Time_UnAcknowledgement_Time",

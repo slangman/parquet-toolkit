@@ -11,7 +11,7 @@ public class TreeMultithreadedParquetMergerTest {
         String inputPath = args[0];
         String outputPath = args[1];
 
-        Configuration configuration = ConfigurationBuilder.getHDFSConfiguration();
+        Configuration configuration = ConfigurationBuilder.getClouderaQuickstartConf();
 
         ParquetFolder folder = new ParquetFolder(new Path(inputPath), configuration);
 

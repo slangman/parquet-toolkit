@@ -10,10 +10,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.proto.ProtoParquetWriter;
 
 import java.io.IOException;
 import java.util.Map;
@@ -27,6 +29,8 @@ public class ConvertThread extends ParquetThread {
     private Configuration conf;
     private CompressionCodecName compressionCodecName;
     private Map<String, Schema.Type> fieldTypes;
+
+    private final long DEFAULT_ROW_GROUP_SIZE = 128 * 1024 * 1024L;
 
     public ConvertThread(Queue<CSVRecord> lines, String outputPath, Schema schema, Configuration conf, CompressionCodecName compressionCodecName) {
         this.lines = lines;
@@ -54,13 +58,14 @@ public class ConvertThread extends ParquetThread {
     public void run() {
         WorkTime workTime = new WorkTime();
         workTime.startTime();
-        try (ParquetWriter<GenericRecord> parquetWriter = AvroParquetWriter.<GenericRecord>builder(new Path(outputPath))
+        try (ParquetWriter<GenericRecord> parquetWriter = getParquetWriter(outputPath))
+        /*try (ParquetWriter<GenericRecord> parquetWriter = AvroParquetWriter.<GenericRecord>builder(new Path(outputPath))
                 .withSchema(schema)
                 .withConf(conf)
                 .withCompressionCodec(compressionCodecName)
                 .withRowGroupSize(128 * 1024 * 1024)
-                //.withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
-                .build();) {
+                .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
+                .build();)*/ {
             while (!lines.isEmpty()) {
                 CSVRecord line = lines.remove();
                 Map<String, String> map = line.toMap();
@@ -105,12 +110,26 @@ public class ConvertThread extends ParquetThread {
         }
     }
 
-    /*private ParquetWriter<GenericRecord> getParquetWriter(String outputPath) throws IOException {
+    private ParquetWriter<GenericRecord> getParquetWriter(String outputPath) throws IOException {
         Path p = new Path(outputPath);
         FileSystem fs = p.getFileSystem(conf);
         if (fs instanceof LocalFileSystem) {
-            return new ProtoParquetWriter
+            return ProtoParquetWriter.<GenericRecord>builder(p)
+                    .withRowGroupSize(DEFAULT_ROW_GROUP_SIZE)
+                    .withCompressionCodec(compressionCodecName)
+                    .withConf(conf)
+                    .build();
+        } else if (fs instanceof DistributedFileSystem) {
+            return AvroParquetWriter.<GenericRecord>builder(new Path(outputPath))
+                    .withSchema(schema)
+                    .withConf(conf)
+                    .withCompressionCodec(compressionCodecName)
+                    .withRowGroupSize(DEFAULT_ROW_GROUP_SIZE)
+                    .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
+                    .build();
+        } else {
+            return null;
         }
-    }*/
+    }
 
 }

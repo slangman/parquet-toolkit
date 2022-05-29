@@ -64,10 +64,10 @@ publishing {
     }
     repositories {
         maven {
-            url "http://172.28.58.127:8081/repository/dmc-web"
+            url ""
             credentials {
-                username "dmp-maintainer"
-                password "g^%is05GH1Ty"
+                username ""
+                password ""
             }
         }
     }

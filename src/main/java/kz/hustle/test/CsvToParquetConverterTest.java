@@ -10,7 +10,7 @@ public class CsvToParquetConverterTest {
         String inputPath = args[0];
         String outputPath = args[1];
 
-        Configuration configuration = new Configuration();
+        Configuration configuration = ConfigurationBuilder.getClouderaQuickstartConf();
 
         CsvToParquetConverter converter = CsvToParquetConverter.builder()
                 .withInputPath(inputPath)

@@ -9,7 +9,7 @@ import java.io.IOException;
 
 public class MainTest {
     public static void main(String[] args) throws IOException, InterruptedException {
-        Configuration configuration = ConfigurationBuilder.getHDFSConfiguration();
+        Configuration configuration = ConfigurationBuilder.getClouderaQuickstartConf();
 
         String input = args[0];
 

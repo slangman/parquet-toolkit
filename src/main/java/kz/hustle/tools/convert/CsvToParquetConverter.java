@@ -4,7 +4,7 @@ import kz.hustle.ParquetFolder;
 import kz.hustle.tools.merge.ParquetMerger;
 import kz.hustle.tools.merge.SimpleMultithreadedParquetMerger;
 import kz.hustle.tools.common.ThreadPool;
-import kz.hustle.tools.merge.MergingNotCompletedException;
+import kz.hustle.tools.merge.exception.MergingNotCompletedException;
 import kz.hustle.utils.DefaultConfigurationBuilder;
 import kz.hustle.utils.WorkTime;
 import org.apache.avro.Schema;

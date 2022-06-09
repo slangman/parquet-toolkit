@@ -3,6 +3,7 @@ package kz.hustle.tools.merge;
 import kz.hustle.ParquetFolder;
 import kz.hustle.tools.exception.DMCErrorDeleteFile;
 import kz.hustle.tools.exception.DMCErrorRenameFile;
+import kz.hustle.tools.merge.exception.MergingNotCompletedException;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;

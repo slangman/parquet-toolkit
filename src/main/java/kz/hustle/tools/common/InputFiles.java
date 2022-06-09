@@ -19,11 +19,12 @@ public class InputFiles implements InputSource {
     private Configuration conf;
 
     public InputFiles(List<String> input) {
-        this.conf = ConfigurationManager.getConf();
+        this.input = input;
     }
 
     @Override
-    public List<FileStatus> getFiles() throws IOException {
+    public List<FileStatus> getFiles(Configuration conf) throws IOException {
+        this.conf = conf;
         List<FileStatus> inputFiles = null;
         if (input.size() == 1) {
             Path p = new Path(input.get(0));

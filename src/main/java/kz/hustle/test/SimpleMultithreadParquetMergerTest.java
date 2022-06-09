@@ -1,6 +1,8 @@
 package kz.hustle.test;
 
 import kz.hustle.ParquetFolder;
+import kz.hustle.tools.common.InputPath;
+import kz.hustle.tools.common.InputSource;
 import kz.hustle.tools.merge.ParquetMerger;
 import kz.hustle.tools.merge.SimpleMultithreadedParquetMerger;
 import org.apache.hadoop.conf.Configuration;
@@ -16,7 +18,21 @@ public class SimpleMultithreadParquetMergerTest {
 
         Configuration configuration = ConfigurationBuilder.getClouderaQuickstartConf();
 
-        ParquetFolder folder = new ParquetFolder(new Path(inputPath), configuration);
+        InputSource inputSource = new InputPath(args[0]);
+
+        ParquetMerger merger = SimpleMultithreadedParquetMerger.builder(configuration)
+                .inputSource(inputSource)
+                .compressionCodec(CompressionCodecName.GZIP)
+                .threadPoolSize(4)
+                .outputRowGroupSize(128 * 1024 * 1024)
+                .outputChunkSizeMegabytes(128)
+                .outputPath(outputPath)
+                .withInt96FieldsSupport()
+                .build();
+        merger.merge();
+
+
+        /*ParquetFolder folder = new ParquetFolder(new Path(inputPath), configuration);
         ParquetMerger merger = SimpleMultithreadedParquetMerger.builder(folder)
                 .withCompressionCodec(CompressionCodecName.GZIP)
                 .withThreadPoolSize(4)
@@ -25,6 +41,6 @@ public class SimpleMultithreadParquetMergerTest {
                 .withOutputPath(outputPath)
                 .withInt96FieldsSupport()
                 .build();
-        merger.merge();
+        merger.merge();*/
     }
 }

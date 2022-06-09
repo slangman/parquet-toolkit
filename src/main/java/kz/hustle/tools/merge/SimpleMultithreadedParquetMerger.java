@@ -1,8 +1,11 @@
 package kz.hustle.tools.merge;
 
 import kz.hustle.ParquetFolder;
+import kz.hustle.tools.common.InputFiles;
+import kz.hustle.tools.common.InputPath;
 import kz.hustle.tools.common.InputSource;
 import kz.hustle.tools.common.ThreadPool;
+import kz.hustle.tools.merge.exception.MergingNotCompletedException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -14,6 +17,8 @@ import org.apache.parquet.avro.AvroReadSupport;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HiddenFileFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -47,19 +52,29 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     private int threadPoolSize = 64;
     private int outputRowGroupSize = 128 * 1024 * 1024;
     private int inputChunkSize = 128 * 1024 * 1024;
+    private int outputChunkSize = 128 * 1024 * 1024;
     private String outputPath;
     private boolean removeInputFiles;
     private boolean removeInputDir;
+    private boolean removeInput;
+    private boolean moveToThrash;
     private int badBlockReadAttempts = 5;
     private long badBlockReadTimeout = 30000;
     private boolean keepEmptyFiles = false;
     private boolean supportInt96 = false;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleMultithreadedParquetMerger.class);
+
     private SimpleMultithreadedParquetMerger() {
     }
 
+    @Deprecated
     public static SimpleMultithreadedParquetMerger.Builder builder(ParquetFolder parquetFolder) {
         return new SimpleMultithreadedParquetMerger().new Builder(parquetFolder);
+    }
+
+    public static SimpleMultithreadedParquetMerger.Builder builder(Configuration conf) {
+        return new SimpleMultithreadedParquetMerger().new Builder(conf);
     }
 
     public class Builder {
@@ -68,9 +83,19 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             SimpleMultithreadedParquetMerger.this.conf = parquetFolder.getConf();
         }
 
-        private Builder(){}
+        private Builder(Configuration conf) {
+            SimpleMultithreadedParquetMerger.this.conf = conf;
+            try {
+                SimpleMultithreadedParquetMerger.this.fs = DistributedFileSystem.get(conf);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
-        public Builder source(InputSource source) {
+        private Builder() {
+        }
+
+        public Builder inputSource(InputSource source) {
             SimpleMultithreadedParquetMerger.this.inputSource = source;
             return this;
         }
@@ -80,19 +105,32 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
          *
          * @param threadPoolSize int
          */
+        @Deprecated
         public Builder withThreadPoolSize(int threadPoolSize) {
             SimpleMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
             return this;
         }
 
+        public Builder threadPoolSize(int threadPoolSize) {
+            SimpleMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        @Deprecated
         public Builder withOutputRowGroupSize(int outputRowGroupSize) {
             SimpleMultithreadedParquetMerger.this.outputRowGroupSize = outputRowGroupSize;
             return this;
         }
 
+        public Builder outputRowGroupSize(int outputRowGroupSize) {
+            SimpleMultithreadedParquetMerger.this.outputRowGroupSize = outputRowGroupSize;
+            return this;
+        }
+
+        @Deprecated
         public Builder withInputChunkSize(int inputChunkSize) {
             if (inputChunkSize < (1024 * 1024)) {
-                System.out.println("Input chunk size can not be less than 1Mb");
+                System.out.println("Input chunk size can not be less than 1MB");
                 SimpleMultithreadedParquetMerger.this.inputChunkSize = 0;
                 return this;
             }
@@ -100,37 +138,92 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             return this;
         }
 
+        public Builder outputChunkSizeMegabytes(int outputChunkSizeMegabytes) {
+            if (outputChunkSize < 1) {
+                LOGGER.warn("Output chunk size can not be less than 1 MB. The output chunk size is set to default (128 MB)");
+                return this;
+            }
+            SimpleMultithreadedParquetMerger.this.outputChunkSize = outputChunkSizeMegabytes * 1024 * 1024;
+            return this;
+        }
+
+        @Deprecated
         public Builder withCompressionCodec(CompressionCodecName compressionCodecName) {
             SimpleMultithreadedParquetMerger.this.compressionCodecName = compressionCodecName;
             return this;
         }
 
+        public Builder compressionCodec(CompressionCodecName compressionCodecName) {
+            SimpleMultithreadedParquetMerger.this.compressionCodecName = compressionCodecName;
+            return this;
+        }
+
+        @Deprecated
         public Builder withOutputPath(String outputPath) {
             SimpleMultithreadedParquetMerger.this.outputPath = outputPath;
             return this;
         }
 
+        /*
+        Если в качестве outputPath указана папка, то после мерджига файл будет сохранен в эту папку
+        со стандартным именем merged-datafile.parquet. Если файлов несколько, то к имени каждого будет добавляться -partN,
+        например: merged-datafile-part0.parquet, merged-datafile-part1.parquet и т.д.
+        Если в качестве outputPath указан файл с определенным именем, например custom-name.parquet, то -partN будет
+        добавляться к имени файла, т.е. custom-name-part0.parquet.
+        Если в качестве outputPath будет указан файл с расширением отличным от .parq или .parquet, то такой путь будет
+        приниматься как каталог.
+         */
+        public Builder outputPath(String outputPath) {
+            SimpleMultithreadedParquetMerger.this.outputPath = outputPath;
+            return this;
+        }
+
+        @Deprecated
         public Builder withRemoveInputFiles() {
             SimpleMultithreadedParquetMerger.this.removeInputFiles = true;
             return this;
         }
 
+        @Deprecated
         public Builder withRemoveInputDir() {
             SimpleMultithreadedParquetMerger.this.removeInputDir = true;
             return this;
         }
 
+        /*
+        Если путь, указнный в outputPath находится внутри какого-либо из путей, указанных в input, то
+        выводить предупреждение и не удалять ничего по завершению.
+         */
+        public Builder removeInputAfterMerging(boolean removeInput, boolean moveToThrash) {
+            SimpleMultithreadedParquetMerger.this.removeInput = removeInput;
+            SimpleMultithreadedParquetMerger.this.moveToThrash = moveToThrash;
+            return this;
+        }
+
+        @Deprecated
         public Builder withOutputFileName(String outputFileName) {
             SimpleMultithreadedParquetMerger.this.outputFileName = outputFileName;
             return this;
         }
 
+        @Deprecated
         public Builder withBadBlockReadAttempts(int badBlockReadAttempts) {
             SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttempts;
             return this;
         }
 
+        public Builder badBlockReadAttempts(int badBlockReadAttemts) {
+            SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttemts;
+            return this;
+        }
+
+        @Deprecated
         public Builder withBadBlockReadTimeout(long badBlockReadTimeout) {
+            SimpleMultithreadedParquetMerger.this.badBlockReadTimeout = badBlockReadTimeout;
+            return this;
+        }
+
+        public Builder badBlockReadTimeout(long badBlockReadTimeout) {
             SimpleMultithreadedParquetMerger.this.badBlockReadTimeout = badBlockReadTimeout;
             return this;
         }
@@ -161,6 +254,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             return this;
         }
 
+        @Deprecated
         private Builder withKeepEmptyFiles() {
             SimpleMultithreadedParquetMerger.this.keepEmptyFiles = true;
             return this;
@@ -208,7 +302,116 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     }
 
     @Override
-    public void merge() throws IOException, InterruptedException, MergingNotCompletedException {
+    public void merge() throws MergingNotCompletedException, IOException, InterruptedException {
+        if (inputSource != null) {
+            newMerge();
+        } else {
+            oldMerge();
+        }
+    }
+
+    public void newMerge() throws IOException {
+        if (inputSource instanceof InputFiles && outputPath == null) {
+            throw new IllegalArgumentException("Output path can not be null when input source is a list of paths.");
+        }
+        String tempDir = conf.get("hadoop.tmp.dir") + "/parquet-merger/" + UUID.randomUUID();
+        fs.mkdirs(new Path(tempDir));
+        boolean mergeIsSuccessful = getFilesMergedSuccessfully(inputSource.getFiles(conf), tempDir);
+        if (mergeIsSuccessful) {
+            moveFilesFromTempDir(tempDir);
+        }
+        if (removeInputFiles) {
+            removeInputFiles();
+        }
+
+    }
+
+    private boolean outputPathIsChildOfInput() {
+        if (inputSource instanceof InputPath) {
+            if (outputPath.startsWith(((InputPath) inputSource).getPath())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void moveFilesFromTempDir(String tempDir) throws IOException {
+        if (outputPath == null) {
+            setOutputPath();
+        }
+        Path outputPathFs = new Path(outputPath);
+        if (fs.exists(outputPathFs)) {
+            if (fs.getFileStatus(outputPathFs).isDirectory()) {
+                if (fs.listStatus(outputPathFs).length > 0) {
+                    throw new IOException("Output directory must be empty: " + outputPath
+                            + System.lineSeparator()
+                            + "Merged files are stored in temp directory: " + tempDir);
+                }
+                moveFilesToDir(new Path(tempDir), outputPathFs);
+            } else {
+                throw new IOException("File already exists: " + outputPath
+                        + System.lineSeparator()
+                        + "Merged files are stored in temp directory: " + tempDir);
+            }
+        } else {
+            if (!(outputPath.endsWith(".parq") || outputPath.endsWith(".parquet"))) {
+                fs.mkdirs(outputPathFs);
+                moveFilesToDir(new Path(tempDir), outputPathFs);
+            } else {
+                moveFilesToFiles(new Path(tempDir));
+            }
+        }
+    }
+
+    private void moveFilesToDir(Path tempPathFs, Path outputPathFs) throws IOException {
+        for (FileStatus fileStatus : fs.listStatus(tempPathFs)) {
+            fs.rename(fileStatus.getPath(), new Path(outputPathFs.toString() + "/" + fileStatus.getPath().getName()));
+        }
+        System.out.println("Moved");
+    }
+
+    private void moveFilesToFiles(Path tempPathFs) throws IOException {
+        FileStatus[] fileStatuses = fs.listStatus(tempPathFs);
+        Path outputDir = new Path(outputPath.substring(0, outputPath.lastIndexOf("/")));
+        if (!fs.exists(outputDir)) {
+            fs.mkdirs(outputDir);
+        }
+        for (int i = 0; i < fileStatuses.length; i++) {
+            String outputPathString = outputPath.substring(0, outputPath.lastIndexOf("."))
+                    + "-part-" + i
+                    + outputPath.substring(outputPath.lastIndexOf("."));
+            fs.rename(fileStatuses[i].getPath(), new Path(outputPathString));
+        }
+    }
+
+    private void setOutputPath() {
+        if (inputSource instanceof InputPath) {
+            String inputPath = ((InputPath) inputSource).getPath();
+            outputPath = inputPath + (inputPath.endsWith("/") ? "" : "/") + "merged/";
+        }
+    }
+
+    private void removeInputFiles() throws IOException {
+        boolean[] filesRemovedSuccessfully = new boolean[]{false};
+        System.out.println("Removing input files...");
+        inputSource.getFiles(conf).forEach(file -> {
+            try {
+                fs.delete(file.getPath(), false);
+                System.out.println(file.getPath() + " removed.");
+            } catch (IOException e) {
+                e.printStackTrace();
+                filesRemovedSuccessfully[0] = false;
+            }
+        });
+        if (filesRemovedSuccessfully[0]) {
+            System.out.println("Files removed successfully.");
+        } else {
+            System.out.println("Errors while removing input files. Some files are not removed.");
+        }
+    }
+
+
+    public void oldMerge() throws IOException, InterruptedException, MergingNotCompletedException {
         super.merge();
         this.fs = DistributedFileSystem.get(conf);
         if (!fs.exists(inputPath)) {

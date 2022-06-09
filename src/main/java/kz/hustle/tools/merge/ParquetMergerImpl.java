@@ -1,6 +1,7 @@
 package kz.hustle.tools.merge;
 
 import kz.hustle.tools.common.InputSource;
+import kz.hustle.tools.merge.exception.MergingNotCompletedException;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -12,6 +13,7 @@ import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HiddenFileFilter;
+
 
 import java.io.IOException;
 import java.util.ArrayList;

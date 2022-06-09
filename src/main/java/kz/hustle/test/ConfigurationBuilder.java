@@ -7,7 +7,6 @@ public class ConfigurationBuilder {
     public static Configuration getClouderaQuickstartConf() {
         Configuration configuration = new Configuration();
         configuration.set("fs.defaultFS", "hdfs://cloudera-vm:8020");
-        configuration.set("fs.default.name", configuration.get("fs.defaultFS"));
         configuration.set("dfs.nameservices","nameservice1");
         configuration.set("dfs.socket.timeout", "1000");
         configuration.set("dfs.ha.namenodes.nameservice1", "namenode1");

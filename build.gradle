@@ -24,7 +24,7 @@ dependencies {
     implementation group: 'org.apache.hadoop', name: 'hadoop-hdfs-client', version: '3.2.1'
     implementation group: 'org.apache.hadoop', name: 'hadoop-client-api', version: '3.1.1.7.2.10.0-148'
     implementation group: 'org.apache.hadoop', name: 'hadoop-client-runtime', version: '3.1.1.7.2.10.0-148'
-
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.17.2'
     implementation group: 'org.apache.avro', name: 'avro', version: '1.10.2'
     implementation group: 'org.apache.parquet', name: 'parquet-hadoop', version: '1.12.1'
     implementation group: 'org.apache.parquet', name: 'parquet-protobuf', version: '1.12.2'
@@ -35,7 +35,8 @@ dependencies {
 }
 
 configurations {
-    runtime.exclude group: "org.slf4j", module: "slf4j-log4j12"
+
+    //runtime.exclude group: "org.slf4j", module: "slf4j-log4j12"
     //runtime.exclude group: "log4j", module: "log4j"
 }
 

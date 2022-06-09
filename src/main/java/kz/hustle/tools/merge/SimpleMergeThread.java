@@ -14,6 +14,8 @@ import org.apache.parquet.avro.AvroReadSupport;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -41,6 +43,7 @@ public class SimpleMergeThread extends ParquetThread implements Runnable {
     private final int badBlockReadAttempts;
     private final long badBlockReadTimeout;
     private final int allDatanodesAreBadReadAttempts;
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleMergeThread.class);
 
     public SimpleMergeThread(SimpleMultithreadedParquetMerger merger,
                              List<MergedFile> files,
@@ -81,11 +84,11 @@ public class SimpleMergeThread extends ParquetThread implements Runnable {
             } catch (IOException | InterruptedException | DMCErrorRenameFile | DMCErrorDeleteFile e) {
                 if (allDatanodesAreBad(e) && attempts <= allDatanodesAreBadReadAttempts) {
                     e.printStackTrace();
-                    System.out.println("Retry merging files. Attempt " + (++attempts));
+                    LOGGER.info("Retry merging files. Attempt " + (++attempts));
                     success = false;
                 } else {
-                    System.out.println("MERGE ERROR: " + outputDir);
-                    System.out.println(e.getMessage());
+                    LOGGER.error("MERGE ERROR: " + outputDir);
+                    LOGGER.error(e.getMessage());
                     e.printStackTrace();
                     throw new RuntimeException(e);
                 }
@@ -154,7 +157,7 @@ public class SimpleMergeThread extends ParquetThread implements Runnable {
                                     .build();*/
                             reader = builder.withConf(conf).build();
                             e.printStackTrace();
-                            System.out.println("Retry reading file. Attempt " + (++attempts));
+                            LOGGER.info("Retry reading file. Attempt " + (++attempts));
                             success = false;
                         } else {
                             throw e;
@@ -179,7 +182,7 @@ public class SimpleMergeThread extends ParquetThread implements Runnable {
             writer.close();
             try {
                 merger.alreadyMerged.add(mergedFileName.replace("_merger_", ""));
-                System.out.println("File " + mergedFileName.replace("_merger_", "") + " merged successfully.");
+                LOGGER.info("File " + mergedFileName.replace("_merger_", "") + " merged successfully.");
                 fs.rename(new Path(mergedFileName), new Path(mergedFileName.replace("_merger_", "")));
             } catch (Exception e) {
                 StringWriter errorWriter = new StringWriter();

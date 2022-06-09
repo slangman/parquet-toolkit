@@ -27,6 +27,7 @@ public class SimpleMultithreadParquetMergerTest {
                 .outputRowGroupSize(128 * 1024 * 1024)
                 .outputChunkSizeMegabytes(128)
                 .outputPath(outputPath)
+                .removeInputAfterMerging(true, true)
                 .withInt96FieldsSupport()
                 .build();
         merger.merge();

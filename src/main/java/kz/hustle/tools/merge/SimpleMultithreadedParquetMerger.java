@@ -11,6 +11,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.hdfs.BlockMissingException;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.parquet.avro.AvroReadSupport;
@@ -57,7 +58,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     private boolean removeInputFiles;
     private boolean removeInputDir;
     private boolean removeInput;
-    private boolean moveToThrash;
+    private boolean moveToTrash;
     private int badBlockReadAttempts = 5;
     private long badBlockReadTimeout = 30000;
     private boolean keepEmptyFiles = false;
@@ -194,9 +195,9 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         Если путь, указнный в outputPath находится внутри какого-либо из путей, указанных в input, то
         выводить предупреждение и не удалять ничего по завершению.
          */
-        public Builder removeInputAfterMerging(boolean removeInput, boolean moveToThrash) {
+        public Builder removeInputAfterMerging(boolean removeInput, boolean moveToTrash) {
             SimpleMultithreadedParquetMerger.this.removeInput = removeInput;
-            SimpleMultithreadedParquetMerger.this.moveToThrash = moveToThrash;
+            SimpleMultithreadedParquetMerger.this.moveToTrash = moveToTrash;
             return this;
         }
 
@@ -320,7 +321,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         if (mergeIsSuccessful) {
             moveFilesFromTempDir(tempDir);
         }
-        if (removeInputFiles) {
+        if (removeInput) {
             removeInputFiles();
         }
 
@@ -367,7 +368,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         for (FileStatus fileStatus : fs.listStatus(tempPathFs)) {
             fs.rename(fileStatus.getPath(), new Path(outputPathFs.toString() + "/" + fileStatus.getPath().getName()));
         }
-        System.out.println("Moved");
+        LOGGER.info("Output files moved to " + outputPath);
     }
 
     private void moveFilesToFiles(Path tempPathFs) throws IOException {
@@ -382,6 +383,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
                     + outputPath.substring(outputPath.lastIndexOf("."));
             fs.rename(fileStatuses[i].getPath(), new Path(outputPathString));
         }
+        LOGGER.info("Output files moved to " + outputPath);
     }
 
     private void setOutputPath() {
@@ -392,21 +394,35 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     }
 
     private void removeInputFiles() throws IOException {
-        boolean[] filesRemovedSuccessfully = new boolean[]{false};
-        System.out.println("Removing input files...");
-        inputSource.getFiles(conf).forEach(file -> {
-            try {
-                fs.delete(file.getPath(), false);
-                System.out.println(file.getPath() + " removed.");
-            } catch (IOException e) {
-                e.printStackTrace();
-                filesRemovedSuccessfully[0] = false;
-            }
-        });
-        if (filesRemovedSuccessfully[0]) {
-            System.out.println("Files removed successfully.");
+        boolean[] filesRemovedSuccessfully = new boolean[]{true};
+        LOGGER.info("Removing input files...");
+        List<FileStatus> filesToDelete = inputSource.getFiles(conf);
+        if (moveToTrash) {
+            Trash trashTmp = new Trash(fs, conf);
+            filesToDelete.forEach(file -> {
+                try {
+                    trashTmp.moveToTrash(file.getPath());
+                    LOGGER.info(file.getPath() + " moved to trash.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    filesRemovedSuccessfully[0] = false;
+                }
+            });
         } else {
-            System.out.println("Errors while removing input files. Some files are not removed.");
+            filesToDelete.forEach(file -> {
+                try {
+                    fs.delete(file.getPath(), false);
+                    LOGGER.info(file.getPath() + " removed.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    filesRemovedSuccessfully[0] = false;
+                }
+            });
+        }
+        if (filesRemovedSuccessfully[0]) {
+            LOGGER.info("Files removed successfully.");
+        } else {
+            LOGGER.warn("Errors while removing input files. Some files are not removed.");
         }
     }
 
@@ -425,7 +441,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         if (filesToMerge != null && !filesToMerge.isEmpty()) {
             filesMergedSuccessfully = getFilesMergedSuccessfully(filesToMerge, tempDir);
         } else {
-            System.out.println("No files to merge.");
+            LOGGER.warn("No files to merge.");
             renameDir(dirRenamed, inputPath.toString());
             return;
         }
@@ -435,50 +451,50 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         }
         if (outputPath != null) {
             if (moveFiles(tempDir, outputPath)) {
-                System.out.println("Files moved successfully.");
+                LOGGER.info("Files moved successfully.");
                 fs.delete(new Path(tempDir), true);
             } else {
-                System.out.println("Errors while moving files. Source directory would not be removed.");
+                LOGGER.warn("Errors while moving files. Source directory would not be removed.");
             }
         } else {
             outputPath = tempDir;
         }
         boolean[] filesRemovedSuccessfully = {true};
         if (removeInputFiles) {
-            System.out.println("Removing input files...");
+            LOGGER.info("Removing input files...");
             filesToMerge.forEach(file -> {
                 try {
                     fs.delete(file.getPath(), false);
-                    System.out.println(file.getPath() + " removed.");
+                    LOGGER.info(file.getPath() + " removed.");
                 } catch (IOException e) {
                     e.printStackTrace();
                     filesRemovedSuccessfully[0] = false;
                 }
             });
             if (filesRemovedSuccessfully[0]) {
-                System.out.println("Files removed successfully.");
+                LOGGER.info("Files removed successfully.");
             } else {
-                System.out.println("Errors while removing files. Some files are not removed.");
+                LOGGER.warn("Errors while removing files. Some files are not removed.");
             }
         }
         if (!outputPath.equals(inputPath.toString())) {
             renameDir(dirRenamed, inputPath.toString());
             if (removeInputDir && fs.listStatus(inputPath).length == 0) {
                 if (fs.delete(inputPath, true)) {
-                    System.out.println("Input directory removed successfully.");
+                    LOGGER.info("Input directory removed successfully.");
                 } else {
-                    System.out.println("Error while removing input directory.");
+                    LOGGER.warn("Error while removing input directory.");
                 }
             }
         } else {
             if (fs.delete(new Path(dirRenamed), true)) {
-                System.out.println("Temp directory removed successfully.");
+                LOGGER.info("Temp directory removed successfully.");
             } else {
-                System.out.println("Error while removing input directory.");
+                LOGGER.warn("Error while removing input directory.");
             }
         }
         long end = System.currentTimeMillis();
-        System.out.println("Folder " + inputPath.toString() + " merged in " + MergeUtils.getWorkTime(end - start) + ".");
+        LOGGER.info("Folder " + inputPath.toString() + " merged in " + MergeUtils.getWorkTime(end - start) + ".");
     }
 
     private boolean mergeFiles(List<FileStatus> inputFiles, String outputDir) throws IOException, InterruptedException {
@@ -601,7 +617,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             ) {
                 if (fs.exists(destPath)) {
                     if (fs.getFileStatus(destPath).isFile()) {
-                        System.out.println("Cannot move: destination path is file");
+                        LOGGER.warn("Cannot move: destination path is file");
                         return false;
                     } else {
 
@@ -618,7 +634,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
                     }
                 }
             } else {
-                System.out.println("Source path does not exists or is not a directory");
+                LOGGER.warn("Source path does not exists or is not a directory");
                 return false;
             }
         } catch (IOException e) {
@@ -668,7 +684,7 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
                                 .withConf(conf)
                                 .build();*/
                         e.printStackTrace();
-                        System.out.println("Retry reading file. Attempt " + (++attempts));
+                        LOGGER.info("Retry reading file. Attempt " + (++attempts));
                         success = false;
                     } else {
                         throw e;

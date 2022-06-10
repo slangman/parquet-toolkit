@@ -26,25 +26,13 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-//TODO: Перевести
-//TODO: Кидать исключения при всех ошибках
-//TODO: Проверять надо ли мержить
-//TODO: Задавать размер выходного файла
+//TODO: Output file size
 
 /**
  * @author Daniil Ivantsov
  * <p>
- * Укрупняет parquet файлы в несколько потоков. Результаты работы потоков не объединяются.
- * Если в списке укрупняемых файлов содержатся файлы с различными схемами,
- * разделяет укрупненные файлы по схемам.
- * При создании экземпляра класса можно указать следующие опции:
- * - суммарный размер файлов, передаваемых в один поток для укрупнения (по умолчанию 128Mb);
- * - размер пула потоков (по умолчанию - 64);
- * - размер rowGroup в выходных файлах (по умолчанию 128Mb);
- * - тип кодека для сжатия файлов (по умолчанию Snappy, наследуется от ParquetMergerImpl);
- * - путь для сохранения выходных файлов (по умолчанию выходные файлы сохраняются в каталоге /merged,
- * созданном в каталоге с входными файлами).
- * - удаление исходных файлов (по умолчанию исходные файлы сохраняются).
+ * Megres .parquet files in multiple-thread approach. Every thread creates a single file.
+ * Input files with different schemas are merged separately.
  */
 
 public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger {
@@ -61,7 +49,6 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     private boolean moveToTrash;
     private int badBlockReadAttempts = 5;
     private long badBlockReadTimeout = 30000;
-    private boolean keepEmptyFiles = false;
     private boolean supportInt96 = false;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleMultithreadedParquetMerger.class);
@@ -69,9 +56,14 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     private SimpleMultithreadedParquetMerger() {
     }
 
+    /**
+     * @param parquetFolder
+     * @deprecated will be removed in 1.0.0
+     * use {@link #builder(Configuration)} instead.
+     */
     @Deprecated
-    public static SimpleMultithreadedParquetMerger.Builder builder(ParquetFolder parquetFolder) {
-        return new SimpleMultithreadedParquetMerger().new Builder(parquetFolder);
+    public static SimpleMultithreadedParquetMerger.DeprecatedBuilder builder(ParquetFolder parquetFolder) {
+        return new SimpleMultithreadedParquetMerger().new DeprecatedBuilder(parquetFolder);
     }
 
     public static SimpleMultithreadedParquetMerger.Builder builder(Configuration conf) {
@@ -79,11 +71,6 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     }
 
     public class Builder {
-        private Builder(ParquetFolder parquetFolder) {
-            SimpleMultithreadedParquetMerger.this.inputPath = parquetFolder.getPath();
-            SimpleMultithreadedParquetMerger.this.conf = parquetFolder.getConf();
-        }
-
         private Builder(Configuration conf) {
             SimpleMultithreadedParquetMerger.this.conf = conf;
             try {
@@ -101,41 +88,13 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             return this;
         }
 
-        /**
-         * Sets the number of merger threads running simultaneously
-         *
-         * @param threadPoolSize int
-         */
-        @Deprecated
-        public Builder withThreadPoolSize(int threadPoolSize) {
-            SimpleMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
-            return this;
-        }
-
         public Builder threadPoolSize(int threadPoolSize) {
             SimpleMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
             return this;
         }
 
-        @Deprecated
-        public Builder withOutputRowGroupSize(int outputRowGroupSize) {
-            SimpleMultithreadedParquetMerger.this.outputRowGroupSize = outputRowGroupSize;
-            return this;
-        }
-
         public Builder outputRowGroupSize(int outputRowGroupSize) {
             SimpleMultithreadedParquetMerger.this.outputRowGroupSize = outputRowGroupSize;
-            return this;
-        }
-
-        @Deprecated
-        public Builder withInputChunkSize(int inputChunkSize) {
-            if (inputChunkSize < (1024 * 1024)) {
-                System.out.println("Input chunk size can not be less than 1MB");
-                SimpleMultithreadedParquetMerger.this.inputChunkSize = 0;
-                return this;
-            }
-            SimpleMultithreadedParquetMerger.this.inputChunkSize = inputChunkSize;
             return this;
         }
 
@@ -148,79 +107,32 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             return this;
         }
 
-        @Deprecated
-        public Builder withCompressionCodec(CompressionCodecName compressionCodecName) {
-            SimpleMultithreadedParquetMerger.this.compressionCodecName = compressionCodecName;
-            return this;
-        }
-
         public Builder compressionCodec(CompressionCodecName compressionCodecName) {
             SimpleMultithreadedParquetMerger.this.compressionCodecName = compressionCodecName;
             return this;
         }
 
-        @Deprecated
-        public Builder withOutputPath(String outputPath) {
-            SimpleMultithreadedParquetMerger.this.outputPath = outputPath;
-            return this;
-        }
-
         /*
-        Если в качестве outputPath указана папка, то после мерджига файл будет сохранен в эту папку
-        со стандартным именем merged-datafile.parquet. Если файлов несколько, то к имени каждого будет добавляться -partN,
-        например: merged-datafile-part0.parquet, merged-datafile-part1.parquet и т.д.
-        Если в качестве outputPath указан файл с определенным именем, например custom-name.parquet, то -partN будет
-        добавляться к имени файла, т.е. custom-name-part0.parquet.
-        Если в качестве outputPath будет указан файл с расширением отличным от .parq или .parquet, то такой путь будет
-        приниматься как каталог.
+        If outputPath value is linking to a folder, the output files are stored in that folder after merging
+        with default names ('merged-datafile-part-0.parquet', 'merged-datafile-part-1.parquet' etc).
+        If output path contains file name, e.g. 'custom-name.parquet', then output file names would be the same
+        with addition of parts, e.g.: 'custom-name-part-0.parquet'.
+        If output path is a file name with extension other than '.parquet' or '.parq', then the path would be understood
+        as a folder path.
          */
         public Builder outputPath(String outputPath) {
             SimpleMultithreadedParquetMerger.this.outputPath = outputPath;
             return this;
         }
 
-        @Deprecated
-        public Builder withRemoveInputFiles() {
-            SimpleMultithreadedParquetMerger.this.removeInputFiles = true;
-            return this;
-        }
-
-        @Deprecated
-        public Builder withRemoveInputDir() {
-            SimpleMultithreadedParquetMerger.this.removeInputDir = true;
-            return this;
-        }
-
-        /*
-        Если путь, указнный в outputPath находится внутри какого-либо из путей, указанных в input, то
-        выводить предупреждение и не удалять ничего по завершению.
-         */
         public Builder removeInputAfterMerging(boolean removeInput, boolean moveToTrash) {
             SimpleMultithreadedParquetMerger.this.removeInput = removeInput;
             SimpleMultithreadedParquetMerger.this.moveToTrash = moveToTrash;
             return this;
         }
 
-        @Deprecated
-        public Builder withOutputFileName(String outputFileName) {
-            SimpleMultithreadedParquetMerger.this.outputFileName = outputFileName;
-            return this;
-        }
-
-        @Deprecated
-        public Builder withBadBlockReadAttempts(int badBlockReadAttempts) {
-            SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttempts;
-            return this;
-        }
-
         public Builder badBlockReadAttempts(int badBlockReadAttemts) {
             SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttemts;
-            return this;
-        }
-
-        @Deprecated
-        public Builder withBadBlockReadTimeout(long badBlockReadTimeout) {
-            SimpleMultithreadedParquetMerger.this.badBlockReadTimeout = badBlockReadTimeout;
             return this;
         }
 
@@ -255,9 +167,138 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             return this;
         }
 
+        public SimpleMultithreadedParquetMerger build() {
+            return SimpleMultithreadedParquetMerger.this;
+        }
+    }
+
+    /**
+     * @deprecated will be removed in 1.0.0
+     */
+    @Deprecated
+    public class DeprecatedBuilder {
+        private DeprecatedBuilder(ParquetFolder parquetFolder) {
+            SimpleMultithreadedParquetMerger.this.inputPath = parquetFolder.getPath();
+            SimpleMultithreadedParquetMerger.this.conf = parquetFolder.getConf();
+        }
+
+        private DeprecatedBuilder() {
+        }
+
+        /**
+         * Sets the number of merger threads running simultaneously.
+         *
+         * @param threadPoolSize a number of threads
+         * @deprecated will be removed in 1.0.0
+         */
         @Deprecated
-        private Builder withKeepEmptyFiles() {
-            SimpleMultithreadedParquetMerger.this.keepEmptyFiles = true;
+        public DeprecatedBuilder withThreadPoolSize(int threadPoolSize) {
+            SimpleMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        /**
+         * Sets the size of the row group in output file.
+         *
+         * @param outputRowGroupSize the size of the row group in output file
+         * @deprecated will be removed in 1.0.0
+         */
+        @Deprecated
+        public DeprecatedBuilder withOutputRowGroupSize(int outputRowGroupSize) {
+            SimpleMultithreadedParquetMerger.this.outputRowGroupSize = outputRowGroupSize;
+            return this;
+        }
+
+        /**
+         * @param inputChunkSize
+         * @deprecated will be removed in 1.0.0
+         */
+        @Deprecated
+        public DeprecatedBuilder withInputChunkSize(int inputChunkSize) {
+            if (inputChunkSize < (1024 * 1024)) {
+                System.out.println("Input chunk size can not be less than 1MB");
+                SimpleMultithreadedParquetMerger.this.inputChunkSize = 0;
+                return this;
+            }
+            SimpleMultithreadedParquetMerger.this.inputChunkSize = inputChunkSize;
+            return this;
+        }
+
+        /**
+         * @param compressionCodecName
+         * @deprecated will be removed in 1.0.0
+         */
+        @Deprecated
+        public DeprecatedBuilder withCompressionCodec(CompressionCodecName compressionCodecName) {
+            SimpleMultithreadedParquetMerger.this.compressionCodecName = compressionCodecName;
+            return this;
+        }
+
+        /**
+         * @param outputPath
+         * @rdeprecated will be removed in 1.0.0
+         */
+        @Deprecated
+        public DeprecatedBuilder withOutputPath(String outputPath) {
+            SimpleMultithreadedParquetMerger.this.outputPath = outputPath;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withRemoveInputFiles() {
+            SimpleMultithreadedParquetMerger.this.removeInputFiles = true;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withRemoveInputDir() {
+            SimpleMultithreadedParquetMerger.this.removeInputDir = true;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withOutputFileName(String outputFileName) {
+            SimpleMultithreadedParquetMerger.this.outputFileName = outputFileName;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withBadBlockReadAttempts(int badBlockReadAttempts) {
+            SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttempts;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withBadBlockReadTimeout(long badBlockReadTimeout) {
+            SimpleMultithreadedParquetMerger.this.badBlockReadTimeout = badBlockReadTimeout;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withInt96Fields(String... fields) {
+            if (fields == null || fields.length == 0) {
+                return this;
+            }
+            SimpleMultithreadedParquetMerger.this.conf.set("parquet.avro.readInt96AsFixed", "true");
+            String int96Fields;
+            if (fields.length == 1) {
+                int96Fields = fields[0];
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (String field : fields) {
+                    sb.append(field).append(",");
+                }
+                sb.deleteCharAt(sb.length() - 1);
+                int96Fields = sb.toString();
+            }
+            SimpleMultithreadedParquetMerger.this.conf.set("parquet.avro.writeFixedAsInt96", int96Fields);
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withInt96FieldsSupport() {
+            SimpleMultithreadedParquetMerger.this.conf.set("parquet.avro.readInt96AsFixed", "true");
+            SimpleMultithreadedParquetMerger.this.supportInt96 = true;
             return this;
         }
 
@@ -508,8 +549,6 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         }
         setInt96Fields(schema);
         long sizeCounter = 0;
-        //TODO: Хз зачем, надо убрать наверное
-        //Collection<List<MergedFile>> chunks = new ArrayList<>();
         List<MergedFile> chunk = new ArrayList<>();
         for (FileStatus f : inputFiles) {
             chunk.add(new MergedFile(f.getPath().toString(), f.getPath().getName(), f.getLen(), false));
@@ -653,10 +692,6 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             e.printStackTrace();
             return false;
         }
-    }
-
-    boolean mergingNeeded() {
-        return false;
     }
 
     Schema getSchema(List<FileStatus> inputFiles) throws IOException, InterruptedException {

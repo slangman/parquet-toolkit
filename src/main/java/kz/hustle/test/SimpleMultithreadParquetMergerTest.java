@@ -41,7 +41,7 @@ public class SimpleMultithreadParquetMergerTest {
                 .withInputChunkSize(128 * 1024 * 1024)
                 .withOutputPath(outputPath)
                 .withInt96FieldsSupport()
-                .build();
-        merger.merge();*/
+                .build();*/
+        merger.merge();
     }
 }

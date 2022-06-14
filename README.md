@@ -1,20 +1,21 @@
 # Parquet Toolkit #
-Версия 1.2.34 <br />
+Version 0.0.2 <br />
 <br />
-Инструменты для преобразования файлов Apache Parquet.
+Tools for optimization and transformation Apache Parquet files.
 
-## Возможности ##
-- Объединение parquet файлов;
-- Укрупнение parquet файлов;
-- Сортировка внутри parquet файла;
-- Разбиение файлов.
+## Capabilities ##
+- Merging Parquet files into one large file;
+- Merging Parquet files into multiple larger files.;
+- Sorting Parquet file by schema field;
+- Splitting files;
+- Converting CSV to Parquet
 
-## Сборка проекта ##
+## Building ##
 ```
 gradlew build
 ```
 
-## Использование ##
+## Usage ##
 
 Операции производятся либо с отдельными файлами, либо с каталогами, в которых находятся parquet файлы.
 
@@ -45,12 +46,12 @@ TreeMultithreadedParquetMerger.builder(parquetFolder)
 
 ```
 ParquetMerger merger = SimpleMultithreadedParquetMerger.builder(parquetFolder)
-                .withOutputRowGroupSize(128 * 1024 * 1024)
+                .outputRowGroupSize(128 * 1024 * 1024)
                 .withInputChunkSize(512 * 1024 * 1024)
-                .withThreadPoolSize(64)
-                .withCompressionCodec(CompressionCodecName.GZIP)
-                .withOutputPath("/path/for/output/files")
-                .withRemoveInputFiles()
+                .threadPoolSize(64)
+                .compressionCodec(CompressionCodecName.GZIP)
+                .outputPath("/path/for/output/files")
+                .removeInputFiles(true, false)
                 .build();
 merger.merge();
 ```

@@ -1,5 +1,6 @@
+package kz.hustle.tools.merge;
+
 import kz.hustle.ParquetFolder;
-import kz.hustle.tools.merge.SimpleMultithreadedParquetMerger;
 import kz.hustle.tools.merge.exception.MergingNotCompletedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;

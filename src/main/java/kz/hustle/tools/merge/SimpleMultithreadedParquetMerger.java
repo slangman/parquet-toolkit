@@ -361,11 +361,11 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         boolean mergeIsSuccessful = getFilesMergedSuccessfully(inputSource.getFiles(conf), tempDir);
         if (mergeIsSuccessful) {
             moveFilesFromTempDir(tempDir);
+            fs.delete(new Path(tempDir), true);
+            if (removeInput) {
+                removeInputFiles();
+            }
         }
-        if (removeInput) {
-            removeInputFiles();
-        }
-
     }
 
     private boolean outputPathIsChildOfInput() {

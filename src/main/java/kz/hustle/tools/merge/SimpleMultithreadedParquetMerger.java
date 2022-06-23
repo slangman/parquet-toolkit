@@ -339,8 +339,13 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         return outputRowGroupSize;
     }
 
+    @Deprecated
     public int getInputChunkSize() {
         return inputChunkSize;
+    }
+
+    public int getOutputChunkSize() {
+        return outputChunkSize;
     }
 
     @Override

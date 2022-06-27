@@ -27,6 +27,9 @@ public abstract class ParquetMergerImpl implements ParquetMerger {
     protected InputSource inputSource;
     protected Configuration conf;
     protected FileSystem fs;
+    protected boolean removeInput;
+    protected boolean moveToTrash;
+
     volatile Set<String> brokenFiles = ConcurrentHashMap.newKeySet();
     volatile Set<String> filesWithDifferentSchema = ConcurrentHashMap.newKeySet();
     volatile Set<String> alreadyMerged = ConcurrentHashMap.newKeySet();
@@ -34,8 +37,20 @@ public abstract class ParquetMergerImpl implements ParquetMerger {
     protected CompressionCodecName compressionCodecName = CompressionCodecName.SNAPPY;
     protected int chunksCounter = 1;
 
+    public Configuration getConf() {
+        return conf;
+    }
+
     public CompressionCodecName getCompressionCodecName() {
         return compressionCodecName;
+    }
+
+    public boolean isRemoveInput() {
+        return removeInput;
+    }
+
+    public boolean isMoveToTrash() {
+        return moveToTrash;
     }
 
     @Override

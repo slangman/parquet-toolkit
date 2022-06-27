@@ -1,6 +1,7 @@
 package kz.hustle.tools.merge;
 
 import kz.hustle.ParquetFolder;
+import kz.hustle.tools.common.InputSource;
 import kz.hustle.tools.common.ThreadPool;
 import kz.hustle.tools.merge.exception.MergingNotCompletedException;
 import org.apache.hadoop.conf.Configuration;
@@ -36,48 +37,116 @@ import java.util.stream.Collectors;
 
 public class TreeMultithreadedParquetMerger extends MultithreadedParquetMerger {
     private static final Logger logger = LogManager.getLogger(TreeMultithreadedParquetMerger.class);
-    private Configuration conf;
-    //private FileSystem fs;
-    private int threadPoolSize = 64;
     private int threadChunkSize = 5;
     private Path inputPath;
     private String outputFileName;
+    private String resultPath;
     private Path outputPath;
     private boolean removeBrokenFiles;
     private boolean removeInputFiles;
     private boolean removeInputDir;
-    private long outputChunkSize = -1;
 
     private TreeMultithreadedParquetMerger() {
     }
 
-    public static Builder builder(ParquetFolder parquetFolder) {
-        return new TreeMultithreadedParquetMerger().new Builder(parquetFolder);
+    /**
+     * @param parquetFolder
+     * @deprecated will be removed in 1.0.0
+     * use {@link #builder(Configuration)} instead.
+     */
+    public static DeprecatedBuilder builder(ParquetFolder parquetFolder) {
+        return new TreeMultithreadedParquetMerger().new DeprecatedBuilder(parquetFolder);
+    }
+
+    public static Builder builder(Configuration conf) {
+        return new TreeMultithreadedParquetMerger().new Builder(conf);
     }
 
     public class Builder {
-
-        private Builder(ParquetFolder parquetFolder) {
-            TreeMultithreadedParquetMerger.this.inputPath = parquetFolder.getPath();
-            TreeMultithreadedParquetMerger.this.conf = parquetFolder.getConf();
+        private Builder(Configuration conf) {
+            TreeMultithreadedParquetMerger.this.conf = conf;
+            try {
+                TreeMultithreadedParquetMerger.this.fs = DistributedFileSystem.get(conf);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
-        public Builder withThreadPoolSize(int threadPoolSize) {
+        public TreeMultithreadedParquetMerger.Builder inputSource(InputSource source) {
+            TreeMultithreadedParquetMerger.this.inputSource = source;
+            return this;
+        }
+
+        public Builder threadPoolSize(int threadPoolSize) {
             TreeMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
             return this;
         }
 
-        public Builder withThreadChunkSize(int threadChunkSize) {
+        public Builder threadChunkSize(int threadChunkSize) {
             TreeMultithreadedParquetMerger.this.threadChunkSize = threadChunkSize;
             return this;
         }
 
-        public Builder withOutputFileName(String outputFileName) {
+        public TreeMultithreadedParquetMerger.Builder outputPath(String outputPath) {
+            TreeMultithreadedParquetMerger.this.resultPath = outputPath;
+            return this;
+        }
+
+        public TreeMultithreadedParquetMerger.Builder outputChunkSizeMegabytes(int outputChunkSize) {
+            TreeMultithreadedParquetMerger.this.outputChunkSize = outputChunkSize * 1024L * 1024;
+            return this;
+        }
+
+        public TreeMultithreadedParquetMerger.Builder removeInputAfterMerging(boolean removeInput, boolean moveToTrash) {
+            TreeMultithreadedParquetMerger.this.removeInput = removeInput;
+            TreeMultithreadedParquetMerger.this.moveToTrash = moveToTrash;
+            return this;
+        }
+
+        public TreeMultithreadedParquetMerger.Builder badBlockReadAttempts(int badBlockReadAttemts) {
+            TreeMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttemts;
+            return this;
+        }
+
+        public TreeMultithreadedParquetMerger.Builder badBlockReadTimeout(long badBlockReadTimeout) {
+            TreeMultithreadedParquetMerger.this.badBlockReadTimeout = badBlockReadTimeout;
+            return this;
+        }
+
+        public TreeMultithreadedParquetMerger build() {
+            return TreeMultithreadedParquetMerger.this;
+        }
+    }
+
+    @Deprecated
+    public class DeprecatedBuilder {
+
+        @Deprecated
+        private DeprecatedBuilder(ParquetFolder parquetFolder) {
+            TreeMultithreadedParquetMerger.this.inputPath = parquetFolder.getPath();
+            TreeMultithreadedParquetMerger.this.conf = parquetFolder.getConf();
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withThreadPoolSize(int threadPoolSize) {
+            TreeMultithreadedParquetMerger.this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withThreadChunkSize(int threadChunkSize) {
+            TreeMultithreadedParquetMerger.this.threadChunkSize = threadChunkSize;
+            return this;
+        }
+
+        @Deprecated
+        public DeprecatedBuilder withOutputFileName(String outputFileName) {
             TreeMultithreadedParquetMerger.this.outputFileName = outputFileName;
             return this;
         }
 
-        public Builder withRemoveBrokenFiles(boolean removeBrokenFiles) {
+        @Deprecated
+        public DeprecatedBuilder withRemoveBrokenFiles(boolean removeBrokenFiles) {
             TreeMultithreadedParquetMerger.this.removeBrokenFiles = removeBrokenFiles;
             return this;
         }
@@ -89,7 +158,8 @@ public class TreeMultithreadedParquetMerger extends MultithreadedParquetMerger {
          * @param outputPath
          * @return
          */
-        public Builder withOutputPath(Path outputPath) {
+        @Deprecated
+        public DeprecatedBuilder withOutputPath(Path outputPath) {
             TreeMultithreadedParquetMerger.this.outputPath = outputPath;
             return this;
         }
@@ -99,17 +169,20 @@ public class TreeMultithreadedParquetMerger extends MultithreadedParquetMerger {
          *
          * @return
          */
-        public Builder withRemoveInputFiles() {
+        @Deprecated
+        public DeprecatedBuilder withRemoveInputFiles() {
             TreeMultithreadedParquetMerger.this.removeInputFiles = true;
             return this;
         }
 
-        public Builder withRemoveInputDir() {
+        @Deprecated
+        public DeprecatedBuilder withRemoveInputDir() {
             TreeMultithreadedParquetMerger.this.removeInputDir = true;
             return this;
         }
 
-        public Builder withOutputChunkSize(long outputChunkSize) {
+        @Deprecated
+        public DeprecatedBuilder withOutputChunkSize(long outputChunkSize) {
             TreeMultithreadedParquetMerger.this.outputChunkSize = outputChunkSize;
             return this;
         }
@@ -120,13 +193,44 @@ public class TreeMultithreadedParquetMerger extends MultithreadedParquetMerger {
 
     }
 
-    public Configuration getConf() {
-        return conf;
-    }
-
     public FileSystem getFs() {
         return fs;
     }
+
+    @Deprecated
+    public Path getOutputPath() {
+        return outputPath;
+    }
+
+    public int getThreadChunkSize() {
+        return threadChunkSize;
+    }
+
+    @Deprecated
+    public String getOutputFileName() {
+        return outputFileName;
+    }
+
+    @Deprecated
+    public boolean isRemoveInputFiles() {
+        return removeInputFiles;
+    }
+
+    @Deprecated
+    public boolean isRemoveInputDir() {
+        return removeInputDir;
+    }
+
+    @Deprecated
+    public boolean isRemoveBrokenFiles() {
+        return removeBrokenFiles;
+    }
+
+    public String getResultPath() {
+        return resultPath;
+    }
+
+
 
     @Override
     public void merge() throws IOException, InterruptedException, MergingNotCompletedException {

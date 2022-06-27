@@ -21,18 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultithreadedParquetSplitter {
-    private Configuration conf;
-    private FileSystem fs;
-    private Path inputPath;
-    private Path outputPath;
-    private String outputDir;
-    private String outputFileName;
-    private int rowGroupSize = 128 * 1024 * 1024;
-    private int outputChunkSize = 128 * 1024 * 1024;
-    private int threadPoolSize = 8;
-    private CompressionCodecName compressionCodecName = CompressionCodecName.SNAPPY;
-    private Schema schema;
+public class MultithreadedParquetSplitter extends ParquetSplitterImpl {
+
     private long recordsPerThread;
     private boolean removeInputFile;
     private boolean removeInputFolder;
@@ -40,42 +30,93 @@ public class MultithreadedParquetSplitter {
     private MultithreadedParquetSplitter() {
     }
 
-    public static MultithreadedParquetSplitter.Builder builder(ParquetFile parquetFile) {
-        return new MultithreadedParquetSplitter().new Builder(parquetFile);
+    @Deprecated
+    public static MultithreadedParquetSplitter.DeprecatedBuilder builder(ParquetFile parquetFile) {
+        return new MultithreadedParquetSplitter().new DeprecatedBuilder(parquetFile);
+    }
+
+    public static MultithreadedParquetSplitter.Builder builder(Configuration conf) {
+        return new MultithreadedParquetSplitter().new Builder(conf);
     }
 
     public class Builder {
-        private Builder(ParquetFile parquetFile) {
-            MultithreadedParquetSplitter.this.inputPath = parquetFile.getPath();
-            MultithreadedParquetSplitter.this.conf = parquetFile.getConf();
+        private Builder(Configuration conf) {
+            MultithreadedParquetSplitter.this.conf = conf;
         }
 
-        public MultithreadedParquetSplitter.Builder withOutputPath(Path outputPath) {
-            MultithreadedParquetSplitter.this.outputPath = outputPath;
+        public MultithreadedParquetSplitter.Builder inputFile(String inputFile) {
+            MultithreadedParquetSplitter.this.inputPath = new Path(inputFile);
             return this;
         }
 
-        public MultithreadedParquetSplitter.Builder withOutputChunkSize(int outputChunkSize) {
+        public MultithreadedParquetSplitter.Builder outputPath(String outputPath) {
+            MultithreadedParquetSplitter.this.outputPath = new Path(outputPath);
+            return this;
+        }
+
+        public MultithreadedParquetSplitter.Builder outputChunkSize(long outputChunkSize) {
             MultithreadedParquetSplitter.this.outputChunkSize = outputChunkSize;
             return this;
         }
 
-        public MultithreadedParquetSplitter.Builder withRowGroupSize(int rowGroupSize) {
-            MultithreadedParquetSplitter.this.rowGroupSize = rowGroupSize;
+        public MultithreadedParquetSplitter.Builder outputRowGroupSize(long outputRowGroupSize) {
+            MultithreadedParquetSplitter.this.rowGroupSize = outputRowGroupSize;
             return this;
         }
 
-        public MultithreadedParquetSplitter.Builder withThreadPoolSize(int threadPoolSize) {
+        public MultithreadedParquetSplitter.Builder threadPoolSize(int threadPoolSize) {
             MultithreadedParquetSplitter.this.threadPoolSize = threadPoolSize;
             return this;
         }
 
-        public MultithreadedParquetSplitter.Builder withCompressionCodec(CompressionCodecName compressionCodecName) {
+        public MultithreadedParquetSplitter.Builder compressionCodec(CompressionCodecName compressionCodecName) {
             MultithreadedParquetSplitter.this.compressionCodecName = compressionCodecName;
             return this;
         }
 
-        public MultithreadedParquetSplitter.Builder withRemoveInputFile() {
+        public MultithreadedParquetSplitter.Builder removeInputFile(boolean removeInputFile) {
+            MultithreadedParquetSplitter.this.removeInputFile = removeInputFile;
+            return this;
+        }
+
+        public MultithreadedParquetSplitter build() {
+            return MultithreadedParquetSplitter.this;
+        }
+    }
+
+    @Deprecated
+    public class DeprecatedBuilder {
+        private DeprecatedBuilder(ParquetFile parquetFile) {
+            MultithreadedParquetSplitter.this.inputPath = parquetFile.getPath();
+            MultithreadedParquetSplitter.this.conf = parquetFile.getConf();
+        }
+
+        public MultithreadedParquetSplitter.DeprecatedBuilder withOutputPath(Path outputPath) {
+            MultithreadedParquetSplitter.this.outputPath = outputPath;
+            return this;
+        }
+
+        public MultithreadedParquetSplitter.DeprecatedBuilder withOutputChunkSize(int outputChunkSize) {
+            MultithreadedParquetSplitter.this.outputChunkSize = outputChunkSize;
+            return this;
+        }
+
+        public MultithreadedParquetSplitter.DeprecatedBuilder withRowGroupSize(int rowGroupSize) {
+            MultithreadedParquetSplitter.this.rowGroupSize = rowGroupSize;
+            return this;
+        }
+
+        public MultithreadedParquetSplitter.DeprecatedBuilder withThreadPoolSize(int threadPoolSize) {
+            MultithreadedParquetSplitter.this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        public MultithreadedParquetSplitter.DeprecatedBuilder withCompressionCodec(CompressionCodecName compressionCodecName) {
+            MultithreadedParquetSplitter.this.compressionCodecName = compressionCodecName;
+            return this;
+        }
+
+        public MultithreadedParquetSplitter.DeprecatedBuilder withRemoveInputFile() {
             MultithreadedParquetSplitter.this.removeInputFile = true;
             return this;
         }
@@ -85,6 +126,7 @@ public class MultithreadedParquetSplitter {
         }
     }
 
+    @Override
     public void split() throws Exception {
         long start = System.currentTimeMillis();
         fs = DistributedFileSystem.get(conf);
@@ -202,4 +244,6 @@ public class MultithreadedParquetSplitter {
                 .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
                 .build();
     }
+
+
 }

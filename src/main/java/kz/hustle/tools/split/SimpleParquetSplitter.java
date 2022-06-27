@@ -5,10 +5,8 @@ import kz.hustle.tools.SimpleParquetSorter;
 import kz.hustle.tools.common.ParquetThread;
 import kz.hustle.tools.common.ThreadPool;
 import kz.hustle.tools.merge.MergeUtils;
-import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.parquet.avro.AvroParquetReader;
@@ -22,54 +20,54 @@ import org.apache.parquet.io.InputFile;
 
 import java.io.IOException;
 
-public class SimpleParquetSplitter {
-    private Configuration conf;
-    private FileSystem fs;
-    private Path inputPath;
-    private Path outputPath;
-    private String outputDir;
-    private String outputFileName;
-    private int rowGroupSize = 128 * 1024 * 1024;
-    private int outputChunkSize = 128 * 1024 * 1024;
-    private int threadPoolSize = 8;
-    private CompressionCodecName compressionCodecName = CompressionCodecName.SNAPPY;
-    private Schema schema;
+public class SimpleParquetSplitter extends ParquetSplitterImpl {
+
     private String sortField;
 
     private SimpleParquetSplitter() {
     }
 
-    public static SimpleParquetSplitter.Builder builder(ParquetFile parquetFile) {
-        return new SimpleParquetSplitter().new Builder(parquetFile);
+    @Deprecated
+    public static SimpleParquetSplitter.DeprecatedBuilder builder(ParquetFile parquetFile) {
+        return new SimpleParquetSplitter().new DeprecatedBuilder(parquetFile);
+    }
+
+    public static SimpleParquetSplitter.Builder builder(Configuration conf) {
+        return new SimpleParquetSplitter().new Builder(conf);
     }
 
     public class Builder {
-        private Builder(ParquetFile parquetFile) {
-            SimpleParquetSplitter.this.inputPath = parquetFile.getPath();
-            SimpleParquetSplitter.this.conf = parquetFile.getConf();
+        private Builder(Configuration conf) {
+            SimpleParquetSplitter.this.conf = conf;
         }
 
-        public SimpleParquetSplitter.Builder withOutputPath(Path outputPath) {
-            SimpleParquetSplitter.this.outputPath = outputPath;
+        public SimpleParquetSplitter.Builder inputFile(String inputFile) {
+            SimpleParquetSplitter.this.inputPath = new Path(inputFile);
             return this;
         }
 
-        public SimpleParquetSplitter.Builder withOutputChunkSize(int outputChunkSize) {
+        public SimpleParquetSplitter.Builder outputPath(String outputPath) {
+            SimpleParquetSplitter.this.outputDir = outputPath;
+            SimpleParquetSplitter.this.outputPath = new Path(outputPath);
+            return this;
+        }
+
+        public SimpleParquetSplitter.Builder outputChunkSize(long outputChunkSize) {
             SimpleParquetSplitter.this.outputChunkSize = outputChunkSize;
             return this;
         }
 
-        public SimpleParquetSplitter.Builder withRowGroupSize(int rowGroupSize) {
+        public SimpleParquetSplitter.Builder outputRowGroupSize(long rowGroupSize) {
             SimpleParquetSplitter.this.rowGroupSize = rowGroupSize;
             return this;
         }
 
-        public SimpleParquetSplitter.Builder withThreadPoolSize(int threadPoolSize) {
+        public SimpleParquetSplitter.Builder threadPoolSize(int threadPoolSize) {
             SimpleParquetSplitter.this.threadPoolSize = threadPoolSize;
             return this;
         }
 
-        public SimpleParquetSplitter.Builder withCompressionCodec(CompressionCodecName compressionCodecName) {
+        public SimpleParquetSplitter.Builder compressionCodec(CompressionCodecName compressionCodecName) {
             SimpleParquetSplitter.this.compressionCodecName = compressionCodecName;
             return this;
         }
@@ -84,6 +82,50 @@ public class SimpleParquetSplitter {
         }
     }
 
+    @Deprecated
+    public class DeprecatedBuilder {
+        private DeprecatedBuilder(ParquetFile parquetFile) {
+            SimpleParquetSplitter.this.inputPath = parquetFile.getPath();
+            SimpleParquetSplitter.this.conf = parquetFile.getConf();
+        }
+
+        public SimpleParquetSplitter.DeprecatedBuilder withOutputPath(Path outputPath) {
+            SimpleParquetSplitter.this.outputDir = outputPath.toString();
+            SimpleParquetSplitter.this.outputPath = outputPath;
+            return this;
+        }
+
+        public SimpleParquetSplitter.DeprecatedBuilder withOutputChunkSize(int outputChunkSize) {
+            SimpleParquetSplitter.this.outputChunkSize = outputChunkSize;
+            return this;
+        }
+
+        public SimpleParquetSplitter.DeprecatedBuilder withRowGroupSize(int rowGroupSize) {
+            SimpleParquetSplitter.this.rowGroupSize = rowGroupSize;
+            return this;
+        }
+
+        public SimpleParquetSplitter.DeprecatedBuilder withThreadPoolSize(int threadPoolSize) {
+            SimpleParquetSplitter.this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        public SimpleParquetSplitter.DeprecatedBuilder withCompressionCodec(CompressionCodecName compressionCodecName) {
+            SimpleParquetSplitter.this.compressionCodecName = compressionCodecName;
+            return this;
+        }
+
+        public SimpleParquetSplitter.DeprecatedBuilder withSorting(String sortField) {
+            SimpleParquetSplitter.this.sortField = sortField;
+            return this;
+        }
+
+        public SimpleParquetSplitter build() {
+            return SimpleParquetSplitter.this;
+        }
+    }
+
+    @Override
     public void split() throws Exception {
         fs = DistributedFileSystem.get(conf);
         if (fs.getFileStatus(inputPath).getLen() <= outputChunkSize) {
@@ -108,7 +150,7 @@ public class SimpleParquetSplitter {
         GenericRecord record = fileReader.read();
         schema = record.getSchema();
         int partIndex = 1;
-        String outputFile = outputDir + outputFileName + "-part" + partIndex + ".parq";
+        String outputFile = outputDir + "/" + outputFileName + "-part-" + partIndex + ".parq";
         ParquetWriter<GenericRecord> writer = createParquetFile(new Path(outputFile));
         while (record != null) {
             long writeStart = System.currentTimeMillis();
@@ -145,7 +187,7 @@ public class SimpleParquetSplitter {
                     });
                 }
                 partIndex++;
-                outputFile = outputDir + outputFileName + "-part" + partIndex + ".parq";
+                outputFile = outputDir + "/" + outputFileName + "-part-" + partIndex + ".parq";
                 writer = createParquetFile(new Path(outputFile));
             }
         }

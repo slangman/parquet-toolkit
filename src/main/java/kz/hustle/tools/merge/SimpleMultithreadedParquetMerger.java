@@ -38,17 +38,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger {
 
     volatile Set<String> brokenFiles = ConcurrentHashMap.newKeySet();
-    private int threadPoolSize = 64;
+
     private int outputRowGroupSize = 128 * 1024 * 1024;
     private int inputChunkSize = 128 * 1024 * 1024;
-    private int outputChunkSize = 128 * 1024 * 1024;
     private String outputPath;
     private boolean removeInputFiles;
     private boolean removeInputDir;
-    private boolean removeInput;
-    private boolean moveToTrash;
-    private int badBlockReadAttempts = 5;
-    private long badBlockReadTimeout = 30000;
     private boolean supportInt96 = false;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleMultithreadedParquetMerger.class);
@@ -114,10 +109,10 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
 
         /*
         If outputPath value is linking to a folder, the output files are stored in that folder after merging
-        with default names ('merged-datafile-part-0.parquet', 'merged-datafile-part-1.parquet' etc).
+        with default names ('merged-datafile-part-0.parquet', 'merged-datafile-part-1.parquet' etc.).
         If output path contains file name, e.g. 'custom-name.parquet', then output file names would be the same
-        with addition of parts, e.g.: 'custom-name-part-0.parquet'.
-        If output path is a file name with extension other than '.parquet' or '.parq', then the path would be understood
+        with addition of part number, e.g.: 'custom-name-part-0.parquet'.
+        If output path is a file name with extension other than '.parquet' or '.parq', then the path would be recognized
         as a folder path.
          */
         public Builder outputPath(String outputPath) {
@@ -131,8 +126,8 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
             return this;
         }
 
-        public Builder badBlockReadAttempts(int badBlockReadAttemts) {
-            SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttemts;
+        public Builder badBlockReadAttempts(int badBlockReadAttempts) {
+            SimpleMultithreadedParquetMerger.this.badBlockReadAttempts = badBlockReadAttempts;
             return this;
         }
 
@@ -307,32 +302,18 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
         }
     }
 
-    public Configuration getConf() {
-        return conf;
-    }
-
-    public int getThreadPoolSize() {
-        return threadPoolSize;
-    }
-
     public String getOutputPath() {
         return outputPath;
     }
 
+    @Deprecated
     public boolean isRemoveInputFiles() {
         return removeInputFiles;
     }
 
+    @Deprecated
     public boolean isRemoveInputDir() {
         return removeInputDir;
-    }
-
-    public int getBadBlockReadAttempts() {
-        return badBlockReadAttempts;
-    }
-
-    public long getBadBlockReadTimeout() {
-        return badBlockReadTimeout;
     }
 
     public int getOutputRowGroupSize() {
@@ -342,10 +323,6 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
     @Deprecated
     public int getInputChunkSize() {
         return inputChunkSize;
-    }
-
-    public int getOutputChunkSize() {
-        return outputChunkSize;
     }
 
     @Override
@@ -371,15 +348,6 @@ public class SimpleMultithreadedParquetMerger extends MultithreadedParquetMerger
                 removeInputFiles();
             }
         }
-    }
-
-    private boolean outputPathIsChildOfInput() {
-        if (inputSource instanceof InputPath) {
-            if (outputPath.startsWith(((InputPath) inputSource).getPath())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void moveFilesFromTempDir(String tempDir) throws IOException {

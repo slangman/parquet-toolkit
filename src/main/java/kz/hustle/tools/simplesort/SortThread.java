@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.simplesort;
 
 import kz.hustle.tools.common.ParquetThread;
 import org.apache.avro.generic.GenericRecord;

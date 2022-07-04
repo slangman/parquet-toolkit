@@ -69,7 +69,7 @@ public class TestUtils {
         }
     }
 
-    private static Schema getSchema() {
+    public static Schema getSchema() {
         String schema = "{" +
                 "\"type\": \"record\"," +
                 "\"name\": \"test_schema\"," +

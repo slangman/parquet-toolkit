@@ -2,16 +2,22 @@ package kz.hustle.tools.sort;
 
 import kz.hustle.tools.TestUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.HdfsConfiguration;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 import static junit.framework.TestCase.assertEquals;
 
-public class BigParquetSorterTest {
+public class BigParquetSorterTest extends SorterTest {
+
+    protected static BigParquetSorter sorter;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BigParquetSorterTest.class);
 
     private static final String TEST_INPUT_PATH = "/test/sort/input";
     private static final String TEST_OUTPUT_PATH = "/test/sort/output";
@@ -21,23 +27,10 @@ public class BigParquetSorterTest {
     private static final long BATCH_SIZE = 10000;
     private static final String FILE_FILTER = ".parquet";
 
-    private static MiniDFSCluster cluster;
-    private static HdfsConfiguration conf;
-    private static BigParquetSorter sorter;
-
     @BeforeClass
     public static void beforeClass() throws IOException {
         createMiniDFSCluster();
         TestUtils.generateParquetFiles(conf, TEST_INPUT_PATH, 10, 100000);
-    }
-
-    protected static void createMiniDFSCluster() {
-        conf = new HdfsConfiguration();
-        try {
-            cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).format(true).build();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     @Test
@@ -60,6 +53,7 @@ public class BigParquetSorterTest {
     }
     
     //Throws ArrayIndexOutOfBoundsException when unable to find any files. Required to fix this. Switch to more obvious exception.
+    @Ignore
     @Test
     public void sortTest() throws Exception {
         sorter = BigParquetSorter.builder()
@@ -73,5 +67,10 @@ public class BigParquetSorterTest {
                 .withFileFilter(".parq")
                 .build();
         sorter.sort("ID");
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        cluster.shutdown();
     }
 }

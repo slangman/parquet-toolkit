@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.simplesort;
 
 import kz.hustle.tools.common.ThreadPool;
 import kz.hustle.tools.merge.MergeUtils;
@@ -124,6 +124,9 @@ public class SimpleParquetSorter extends BaseParquetSorter {
                 if (!queueList.get(queueIndex).isEmpty()) {
                     records.put(queueList.get(queueIndex).poll(), queueIndex);
                 }
+            }
+            if (!records.isEmpty()) {
+                writer.write(records.keySet().iterator().next());
             }
             writer.close();
             long finish2 = System.currentTimeMillis();

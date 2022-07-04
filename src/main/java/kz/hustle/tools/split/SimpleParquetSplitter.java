@@ -1,7 +1,7 @@
 package kz.hustle.tools.split;
 
 import kz.hustle.ParquetFile;
-import kz.hustle.tools.SimpleParquetSorter;
+import kz.hustle.tools.simplesort.SimpleParquetSorter;
 import kz.hustle.tools.common.ParquetThread;
 import kz.hustle.tools.common.ThreadPool;
 import kz.hustle.tools.merge.MergeUtils;

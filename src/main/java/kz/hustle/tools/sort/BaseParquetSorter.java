@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.sort;
 
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;

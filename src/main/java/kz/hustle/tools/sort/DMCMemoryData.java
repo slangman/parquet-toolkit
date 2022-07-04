@@ -132,7 +132,7 @@ public class DMCMemoryData {
                 if (_exception.contains("[SQLITE_LOCKED_SHAREDCACHE]")) {
                     _isError = true;
                     //System.out.println(DMCConsoleColors.colorYellowText("Перезапуск комманды..."));
-                    System.out.println("Перезапуск комманды...");
+                    System.out.println("Command relaunch...");
                     //System.out.println(DMCConsoleColors.colorRedText(DMCError.get().getFullErrorText(e)));
                     e.printStackTrace();
                     Thread.sleep(10);

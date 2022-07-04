@@ -1,7 +1,7 @@
 package kz.hustle.test;
 
-import kz.hustle.tools.BigParquetSorter;
-import kz.hustle.tools.ParquetSorter;
+import kz.hustle.tools.sort.BigParquetSorter;
+import kz.hustle.tools.sort.ParquetSorter;
 import org.apache.hadoop.fs.Path;
 
 

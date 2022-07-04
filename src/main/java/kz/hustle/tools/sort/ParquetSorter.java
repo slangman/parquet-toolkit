@@ -1,4 +1,4 @@
-package kz.hustle.tools;
+package kz.hustle.tools.sort;
 
 import java.io.IOException;
 

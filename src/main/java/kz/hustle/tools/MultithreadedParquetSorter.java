@@ -1,5 +1,6 @@
 package kz.hustle.tools;
 
+import kz.hustle.tools.sort.ParquetSorter;
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;

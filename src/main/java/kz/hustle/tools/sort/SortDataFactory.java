@@ -99,7 +99,7 @@ public class SortDataFactory {
                         .executeQuery(_sql);
 
                 if (isSort) {
-                    System.out.println("Сортировка завершена: ");
+                    System.out.println("Sorting completed: ");
                     //System.out.println(DMCConsoleColors.colorGreenText("Сортировка завершена: " + time.getWorkTimeShort()));
                 }
 
@@ -144,7 +144,7 @@ public class SortDataFactory {
 
                 try {
                     this.pool.shutDownAndWait();
-                    System.out.println("Данные в памяти обработаны...");
+                    System.out.println("Data in memory processed...");
                     //System.out.println(DMCConsoleColors.colorYellowText("Данные в памяти обработаны..."));
                     isFinish = true;
                 } catch (Exception e) {
@@ -164,7 +164,7 @@ public class SortDataFactory {
             } finally {
                 try {
                     this.pool.shutDownAndWait();
-                    System.out.println("Данные в памяти обработаны...");
+                    System.out.println("Data in memory processed...");
                     //System.out.println(DMCConsoleColors.colorYellowText("Данные в памяти обработаны..."));
                     isFinish = true;
                 } catch (Exception e) {

@@ -89,7 +89,7 @@ public class MultithreadedParquetSplitterTest extends SplitterTest {
         assertEquals(11, outputFiles.length);
         long recordsCount = 0L;
         for (FileStatus outputFile : outputFiles) {
-            recordsCount += TestUtils.getFileRowsCount(outputFile.getPath(),conf);
+            recordsCount += TestUtils.getFileRowsCount(outputFile.getPath(), conf);
         }
         assertEquals(recordsCount, RECORDS_IN_FILE);
     }

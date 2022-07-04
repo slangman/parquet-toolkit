@@ -1,8 +1,6 @@
-package kz.hustle.tools;
+package kz.hustle.tools.sort;
 
-import kz.hustle.tools.sort.*;
 import kz.hustle.tools.merge.MergeUtils;
-import kz.hustle.tools.sort.*;
 import org.apache.hadoop.fs.FileStatus;
 
 import java.io.IOException;
@@ -24,7 +22,7 @@ public class BigParquetSorter extends BaseParquetSorter {
     private boolean isSort = true;
 
 
-    public BigParquetSorter(Builder builder) throws IOException {
+    private BigParquetSorter(Builder builder) throws IOException {
         super(builder);
         this.numberOfFilesProcessedInParallel = builder.numberOfFilesProcessedInParallel;
         this.submitThreadCount = builder.submitThreadCount;
@@ -79,10 +77,25 @@ public class BigParquetSorter extends BaseParquetSorter {
             return this;
         }
 
-        @Override
         public BigParquetSorter build() throws IOException {
             return new BigParquetSorter(this);
         }
+    }
+
+    public int getNumberOfFilesProcessedInParallel() {
+        return numberOfFilesProcessedInParallel;
+    }
+
+    public int getSubmitThreadCount() {
+        return submitThreadCount;
+    }
+
+    public int getSaveThreadCount() {
+        return saveThreadCount;
+    }
+
+    public long getBatchSize() {
+        return batchSize;
     }
 
     @Override

@@ -14,7 +14,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 
-public class SimpleParquetSplitterTest extends SplitterTest{
+public class SimpleParquetSplitterTest extends SplitterTest {
 
     private static SimpleParquetSplitter splitter;
 
@@ -89,7 +89,7 @@ public class SimpleParquetSplitterTest extends SplitterTest{
         assertEquals(33, outputFiles.length);
         long recordsCount = 0L;
         for (FileStatus outputFile : outputFiles) {
-            recordsCount += TestUtils.getFileRowsCount(outputFile.getPath(),conf);
+            recordsCount += TestUtils.getFileRowsCount(outputFile.getPath(), conf);
         }
         assertEquals(recordsCount, RECORDS_IN_FILE);
     }
